@@ -82,7 +82,7 @@
         조회 기준:
         <label style="margin-left:6px"><input type="radio" name="rraMode" value="db" checked style="width:auto" /> 모델명·로컬DB <span style="font-size:11px">(키 불필요)</span></label>
         <label style="margin-left:12px"><input type="radio" name="rraMode" value="cert" style="width:auto" /> 인증번호 <span style="font-size:11px">(무료 API)</span></label>
-        <label style="margin-left:12px"><input type="radio" name="rraMode" value="model" style="width:auto" /> 모델명·API <span style="font-size:11px">(data.go.kr 키)</span></label>
+        <label style="margin-left:12px"><input type="radio" name="rraMode" value="live" style="width:auto" /> 모델명·실시간조회 <span style="font-size:11px">(RRA 직접·키 불필요)</span></label>
       </div>
       <div class="body" id="body-rra"><span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span></div>
     </section>
@@ -165,19 +165,18 @@
       </div>
 
       <div class="field">
-        <label>전파인증 모델검색 서비스키 (data.go.kr 적합성평가 DB정보 3034183)</label>
-        <input id="cfg-rraSearchKey" type="password" placeholder="'모델명' 기준 조회를 쓸 때만 필요 (일반 인증키 Decoding)" />
-        <div class="hint">모델명→인증번호 검색용. localStorage 에만 저장됩니다.</div>
+        <label>전파인증 실시간 조회 URL (RRA A_c_search_view.do)</label>
+        <input id="cfg-rraLiveUrl" type="text" />
+        <div class="hint">'모델명·실시간조회' 모드에서 RRA 검색을 직접 POST 합니다. <b>로컬 프록시 모드 필요.</b></div>
       </div>
       <div class="grid2">
         <div class="field">
-          <label>적합성평가 모델검색 요청 URL</label>
-          <input id="cfg-rraSearchUrl" type="text" placeholder="data.go.kr 본인 API 상세페이지 요청주소(오퍼레이션까지)" />
+          <label>인증일자 시작 (YYYYMMDD)</label>
+          <input id="cfg-rraLiveFrom" type="text" placeholder="20000101" />
         </div>
         <div class="field">
-          <label>모델명 파라미터</label>
-          <input id="cfg-rraSearchModelParam" type="text" placeholder="예: mtlBscMdlNm" />
-          <div class="hint">상세페이지 요청변수 표에서 기본/모델 검색 파라미터명 확인.</div>
+          <label>인증일자 종료 (YYYYMMDD, 비우면 오늘)</label>
+          <input id="cfg-rraLiveTo" type="text" placeholder="(오늘)" />
         </div>
       </div>
       <div class="field">
@@ -229,10 +228,10 @@ const DEFAULTS = {
   rraInfoUrl:   "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do",
   rraParam: "mtlCefNo",           // 인증/등록번호 파라미터
   rraDetail: "https://www.rra.go.kr/ko/license/A_b_popup_keyno.do?key_no={certNo}",
-  // ── 전파인증 모델명 검색 (data.go.kr 적합성평가 DB정보, 데이터 3034183) ──
-  rraSearchKey: "",                    // data.go.kr 서비스키 (모델 검색 시에만 필요)
-  rraSearchUrl: "",                    // 본인 활용신청 API 상세페이지의 요청주소(오퍼레이션까지)
-  rraSearchModelParam: "mtlBscMdlNm",  // 모델 검색 파라미터 (상세페이지에서 확인)
+  // ── 전파인증 모델명 실시간 조회 (RRA A_c_search_view.do 직접 POST) ──
+  rraLiveUrl: "https://www.rra.go.kr/ko/license/A_c_search_view.do",
+  rraLiveFrom: "20000101",  // 인증일자 시작(YYYYMMDD)
+  rraLiveTo: "",            // 종료(YYYYMMDD), 비우면 오늘
 };
 
 const LS_KEY = "cert-checker-config-v1";
@@ -262,9 +261,9 @@ function fillSettings(){
   F("cfg-rraStatusUrl").value = cfg.rraStatusUrl;
   F("cfg-rraInfoUrl").value = cfg.rraInfoUrl;
   F("cfg-rraParam").value = cfg.rraParam;
-  F("cfg-rraSearchKey").value = cfg.rraSearchKey;
-  F("cfg-rraSearchUrl").value = cfg.rraSearchUrl;
-  F("cfg-rraSearchModelParam").value = cfg.rraSearchModelParam;
+  F("cfg-rraLiveUrl").value = cfg.rraLiveUrl;
+  F("cfg-rraLiveFrom").value = cfg.rraLiveFrom;
+  F("cfg-rraLiveTo").value = cfg.rraLiveTo;
   F("cfg-dbUrl").value = cfg.dbUrl;
   updateModeNote();
 }
@@ -278,9 +277,9 @@ function readSettings(){
   cfg.rraStatusUrl = F("cfg-rraStatusUrl").value.trim();
   cfg.rraInfoUrl = F("cfg-rraInfoUrl").value.trim();
   cfg.rraParam = F("cfg-rraParam").value.trim() || "mtlCefNo";
-  cfg.rraSearchKey = F("cfg-rraSearchKey").value.trim();
-  cfg.rraSearchUrl = F("cfg-rraSearchUrl").value.trim();
-  cfg.rraSearchModelParam = F("cfg-rraSearchModelParam").value.trim() || "mtlBscMdlNm";
+  cfg.rraLiveUrl = F("cfg-rraLiveUrl").value.trim() || "https://www.rra.go.kr/ko/license/A_c_search_view.do";
+  cfg.rraLiveFrom = F("cfg-rraLiveFrom").value.trim() || "20000101";
+  cfg.rraLiveTo = F("cfg-rraLiveTo").value.trim();
   cfg.dbUrl = F("cfg-dbUrl").value.trim() || "rra_db.json";
 }
 function updateModeNote(){
@@ -293,7 +292,7 @@ function updateModeNote(){
 }
 
 /* ---- 핵심: 대상 URL 을 프록시 경유로 가져오기 ---- */
-async function proxiedFetch(targetUrl, extraHeaders){
+async function proxiedFetch(targetUrl, extraHeaders, postBody){
   let reqUrl;
   const headers = Object.assign({ "Accept":"application/json, text/html, */*" }, extraHeaders||{});
   if(cfg.mode==="local"){
@@ -303,7 +302,13 @@ async function proxiedFetch(targetUrl, extraHeaders){
     if(!cfg.corsProxy.includes("{url}")) throw new Error("공개 CORS 프록시 템플릿에 {url} 자리표시자가 필요합니다.");
     reqUrl = cfg.corsProxy.replace("{url}", encodeURIComponent(targetUrl));
   }
-  const res = await fetch(reqUrl, { headers });
+  const init = { headers };
+  if(postBody != null){
+    init.method = "POST";
+    headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
+    init.body = postBody;
+  }
+  const res = await fetch(reqUrl, init);
   const text = await res.text();
   if(!res.ok) throw new Error("HTTP "+res.status+"\n"+text.slice(0,500));
   return text;
@@ -445,8 +450,8 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 /* ---- 조회 동작 ---- */
 async function queryRra(input){
   const mode = (document.querySelector('input[name=rraMode]:checked')||{}).value || "db";
-  if(mode === "db")    return queryRraDb(input);
-  if(mode === "model") return queryRraByModel(input);
+  if(mode === "db")   return queryRraDb(input);
+  if(mode === "live") return queryRraLive(input);
   return queryRraByCert(input);
 }
 
@@ -548,74 +553,56 @@ function renderRra(certNo, st, info, rawText){
   }
 }
 /* ---- 전파인증: 모델명 → 인증번호 검색 (data.go.kr 적합성평가 DB정보 3034183) ---- */
-async function queryRraByModel(model){
-  setBadge("rra","run","검색중…");
+// 인증번호 패턴 (R-R-SEC-..., R-C-..., MSIP-..., KCC-... 등)
+const RRA_CERT_RE = /\b(?:R-[A-Z]{1,4}-[A-Za-z0-9]+-[A-Za-z0-9.\-]+|MSIP-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+|KCC-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+)\b/;
+function todayYmd(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return ""+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate()); }
+function buildRraLiveBody(model){
+  const params = {
+    category:"", fromdate:(cfg.rraLiveFrom||"20000101"), todate:(cfg.rraLiveTo||todayYmd()),
+    firm:"", equip:"", model_no:model, app_no:"", maker:"", nation:""
+  };
+  return new URLSearchParams(params).toString();
+}
+async function queryRraLive(model){
+  setBadge("rra","run","조회중…");
   try{
-    if(!cfg.rraSearchUrl) throw new Error("설정에서 '적합성평가 모델검색 요청 URL'을 입력하세요. (data.go.kr 3034183)");
-    if(!cfg.rraSearchKey) throw new Error("설정에서 '전파인증 모델검색 서비스키'를 입력하세요.");
-    const text = await proxiedFetch(buildRraSearchUrl(model));
-    let items = parseRraList(text);
-    // 서버 필터가 없거나 부정확할 수 있어 모델 문자열로 한 번 더 거른다.
-    const q = model.trim().toUpperCase();
-    const filtered = items.filter(it => (it.basicModel+" "+it.derivModel+" "+it.name).toUpperCase().includes(q));
-    if(filtered.length) items = filtered;
+    if(cfg.mode !== "local") throw new Error("실시간조회는 RRA 사이트에 직접 POST 하므로 '로컬 프록시' 모드가 필요합니다.\n설정에서 연결 방식을 '로컬 프록시'로 바꾸고 server.py 를 실행하세요.");
+    const html = await proxiedFetch(cfg.rraLiveUrl, null, buildRraLiveBody(model));
+    const items = parseRraLive(html, model);
     setBadge("rra", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
-    renderRraList(items, text);
+    renderRraLive(items, html);
   }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
 }
-function buildRraSearchUrl(model){
-  const u = new URL(cfg.rraSearchUrl);
-  u.searchParams.set("serviceKey", cfg.rraSearchKey);
-  u.searchParams.set(cfg.rraSearchModelParam, model);
-  u.searchParams.set("pageNo","1");
-  u.searchParams.set("numOfRows","50");
-  if(!u.searchParams.has("returnType")) u.searchParams.set("returnType","json");
-  if(!u.searchParams.has("type")) u.searchParams.set("type","json");
-  return u.toString();
+// 결과 HTML 표에서 인증번호가 들어있는 행을 추출 (열 구조 변화에 견디도록 셀 전체 보존)
+function parseRraLive(html, model){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll("table tr").forEach(tr=>{
+    const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
+    if(!cells.length) return;
+    const m = cells.join("  ").match(RRA_CERT_RE);
+    if(!m) return;
+    const certNo = m[0];
+    out.push({ certNo, cells, detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)) });
+  });
+  // 모델명이 셀에 포함된 행 우선
+  if(model){ const q=model.toUpperCase(); out.sort((a,b)=> (b.cells.join(" ").toUpperCase().includes(q)?1:0)-(a.cells.join(" ").toUpperCase().includes(q)?1:0)); }
+  return out;
 }
-function normalizeRraRecord(o){
-  const pick=(...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]) return String(o[ok]); } } return ""; };
-  return {
-    certNo:     pick("mtlCefNo","certNum","인증번호","cert_no"),
-    basicModel: pick("matlBscMdlNm","mtlBscMdlNm","기본모델","basicModel"),
-    derivModel: pick("matlDerivMdlNm","mtlDerivMdlNm","파생모델","derivationModel"),
-    name:       pick("mtlNm","기자재명칭","equipmentName"),
-    company:    pick("bsmNm","업체명","companyName"),
-    maker:      pick("matlMfrNm","제조자","manufacturer"),
-    country:    pick("dttlInfCdNm","제조국가","제조국"),
-    date:       pick("cvaPcsYmd","인증년월일","인증일자"),
-    _raw:o
-  };
-}
-function parseRraList(text){
-  let recs=[];
-  try{ recs = deepFindArray(JSON.parse(text)) || []; }
-  catch(e){
-    const doc = new DOMParser().parseFromString(text,"application/xml");
-    recs = Array.from(doc.querySelectorAll("item")).map(node=>{ const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); }); return o; });
-  }
-  return recs.map(normalizeRraRecord);
-}
-function renderRraList(items, rawText){
-  const body=F("body-rra");
-  body.innerHTML="";
+function renderRraLive(items, rawText){
+  const body=F("body-rra"); body.innerHTML="";
   if(!items.length){
-    body.innerHTML='<span class="muted">해당 모델명의 적합성평가 내역이 없습니다. (모델 파라미터명/요청 URL 확인)</span>';
-  }else items.slice(0,20).forEach(it=>{
-    const detail = it.certNo ? cfg.rraDetail.replace("{certNo}", encodeURIComponent(it.certNo)) : "";
+    body.innerHTML='<span class="muted">결과가 없습니다. 기간(인증일자)·모델명을 확인하세요. 표 구조가 다르면 디버그로 원본을 확인해 주세요.</span>';
+  }else items.slice(0,30).forEach(it=>{
+    // 인증번호 셀을 제외한 나머지 셀들을 정보로 표시
+    const others = it.cells.filter(c=>c && c!==it.certNo);
     const div=document.createElement("div"); div.className="result-item";
     div.innerHTML =
-      `<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}${detail?` <a href="${detail}" target="_blank" rel="noopener">[상세]</a>`:""}</div>
-       <div class="kv">
-         ${it.basicModel?`<div class="k">기본모델</div><div>${escapeHtml(it.basicModel)}</div>`:""}
-         ${it.derivModel?`<div class="k">파생모델</div><div>${escapeHtml(it.derivModel)}</div>`:""}
-         ${it.name?`<div class="k">기자재명칭</div><div>${escapeHtml(it.name)}</div>`:""}
-         ${it.company?`<div class="k">업체명</div><div>${escapeHtml(it.company)}</div>`:""}
-         ${it.country?`<div class="k">제조국</div><div>${escapeHtml(it.country)}</div>`:""}
-         ${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}
-       </div>`;
+      `<div class="certno">${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a></div>
+       <div class="kv"><div class="k">정보</div><div>${escapeHtml(others.join(" · "))}</div></div>`;
     body.appendChild(div);
   });
+  if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
   if(F("show-debug").checked && rawText!=null){ const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=rawText.slice(0,8000); body.appendChild(pre); }
 }
 
@@ -646,9 +633,9 @@ F("model").addEventListener("keydown", e=>{ if(e.key==="Enter") F("btn-both").cl
 document.querySelectorAll('input[name=rraMode]').forEach(r=>r.addEventListener("change", ()=>{
   const m=(document.querySelector('input[name=rraMode]:checked')||{}).value;
   F("body-rra").innerHTML =
-    m==="db"    ? '<span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span>' :
-    m==="model" ? '<span class="muted">모델명을 입력하고 조회하세요. (설정에 적합성평가 서비스키 필요)</span>' :
-                  '<span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span>';
+    m==="db"   ? '<span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span>' :
+    m==="live" ? '<span class="muted">모델명을 입력하고 조회하세요. (RRA 사이트 실시간 검색 · 로컬 프록시 필요)</span>' :
+                 '<span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span>';
 }));
 
 F("cfg-save").onclick = ()=>{ readSettings(); saveConfig(); updateModeNote(); F("cfg-status").textContent="✅ 저장되었습니다."; };

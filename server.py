@@ -65,8 +65,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         return self.handle_static(parsed)
 
-    # ---- /fetch 중계 ----
-    def handle_fetch(self, parsed):
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/fetch":
+            length = int(self.headers.get("Content-Length", 0) or 0)
+            body = self.rfile.read(length) if length else b""
+            return self.handle_fetch(parsed, post_body=body)
+        return self.send_json(404, b'{"error":"not found"}')
+
+    # ---- /fetch 중계 (GET 또는 POST) ----
+    def handle_fetch(self, parsed, post_body=None):
         qs = parse_qs(parsed.query)
         target = (qs.get("url") or [""])[0]
         if not target:
@@ -88,7 +96,11 @@ class Handler(BaseHTTPRequestHandler):
         auth = self.headers.get("AuthKey")
         if auth:
             fwd["AuthKey"] = auth
-        req = urllib.request.Request(target, headers=fwd)
+        # 전파인증 실시간조회 등 POST 요청은 본문/Content-Type 을 그대로 전달.
+        if post_body is not None:
+            fwd["Content-Type"] = self.headers.get(
+                "Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+        req = urllib.request.Request(target, data=post_body, headers=fwd)
         try:
             with urllib.request.urlopen(req, timeout=30, context=_SSL_CTX) as resp:
                 body = resp.read()
