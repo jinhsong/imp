@@ -68,20 +68,26 @@ python3 server.py            # 기본 http://localhost:8000
 > 흔한 이름들로 매칭합니다. 잘 안 맞으면 **디버그 표시**를 켜서 원본 응답의 실제
 > 필드명을 확인하고, `index.html` 의 `normalizeRecord()` 에 키를 추가하세요.
 
-### 전파인증 (RRA 적합성평가 현황 검색)
+### 전파인증 (RRA 적합성평가 무료 Open API — 키 불필요)
 
-기본값은 다음과 같이 설정되어 있습니다.
+RRA가 `emsit.go.kr` 에서 무료 Open API를 제공합니다(별도 서비스키 없음). 단,
+**모델명이 아니라 인증번호(`mtlCefNo`)로 조회**합니다.
 
-- 검색 URL: `https://www.rra.go.kr/ko/license/A_c_search.do`
-- 검색어 파라미터: `searchVal`
-- 인증번호 상세: `A_b_popup_keyno.do?key_no=<인증번호>`
+- 인증여부: `http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthStatus.do?mtlCefNo=<인증번호>`
+  → 응답 `<authYn>Y/N</authYn>`
+- 상세정보: `http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do?mtlCefNo=<인증번호>`
+  → `bsmNm`(업체명) `mtlNm`(기자재명칭) `matlBscMdlNm`(기본모델) `matlDerivMdlNm`(파생모델)
+     `matlMfrNm`(제조자) `dttlInfCdNm`(제조국) `cvaPcsYmd`(인증일) 등
+- 인증번호 상세 페이지: `A_b_popup_keyno.do?key_no=<인증번호>`
 
-RRA 사이트 구조가 바뀌거나 결과가 안 나오면, 실제 검색 화면에서 **F12 → Network**
-탭을 열고 모델명으로 검색해 실제 요청 URL/파라미터를 확인한 뒤 설정에서 바로 고치면
-됩니다. (검색유형 파라미터가 필요하면 *검색유형 파라미터* 칸에 `searchType=MODEL`
-형태로 입력)
+응답코드: `0000` 정상 / `0001` 조회내역없음 / `0098` 요청 파라미터 누락.
 
-HTML 표 파싱은 `index.html` 의 `parseRra()` / 인증번호 정규식 `CERT_RE` 에서 조정합니다.
+> ⚠️ **모델명 → 인증번호** 방향은 이 무료 API가 지원하지 않습니다(인증번호 기준).
+> 모델명으로 찾으려면 RRA 검색페이지(<https://www.rra.go.kr/ko/license/A_c_search.do>,
+> 인증일자 기간 입력 필수)를 이용하거나, data.go.kr 적합성평가 DB정보 API(데이터 3034183,
+> 서비스키 필요)를 쓰세요.
+
+XML 파싱/필드 매핑은 `index.html` 의 `parseRraInfo()` 에서 조정합니다.
 
 ---
 
@@ -97,5 +103,5 @@ HTML 표 파싱은 `index.html` 의 `parseRra()` / 인증번호 정규식 `CERT_
 |------|------|
 | "host not allowed" | 대상 도메인을 `server.py` 의 `ALLOWED_HOSTS` 에 추가 |
 | 안전인증 결과 0건인데 키는 정상 | 모델명 파라미터명/요청 URL이 상세페이지와 일치하는지, 디버그로 원본 확인 |
-| 전파인증 0건 | DevTools 로 실제 검색 요청 확인 후 검색 URL/파라미터 수정 |
+| 전파인증 "미인증/내역없음" | 모델명이 아니라 **인증번호**(예: KCC-REM-MJT-MJT)를 입력했는지 확인 |
 | 공개 프록시 실패 | 다른 공개 CORS 프록시 템플릿으로 교체하거나 로컬 모드 사용 |

@@ -25,6 +25,7 @@ from urllib.parse import urlparse, parse_qs
 # 중계를 허용할 호스트 (오·남용 방지). 필요 시 추가하세요.
 ALLOWED_HOSTS = (
     "rra.go.kr", "www.rra.go.kr", "ccac.rra.go.kr",
+    "emsit.go.kr", "www.emsit.go.kr",   # 전파인증(적합성평가) 무료 Open API
     "data.go.kr", "www.data.go.kr",
     "apis.data.go.kr", "api.data.go.kr", "apis.data.or.kr",
 )

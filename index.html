@@ -64,12 +64,12 @@
 <body>
 <header>
   <h1>수입 모델 인증 확인</h1>
-  <div class="sub">모델명을 입력하면 <b>전파인증(적합성평가)</b>과 <b>안전인증(KC)</b>의 인증번호를 조회합니다.</div>
+  <div class="sub"><b>안전인증(KC)</b>은 모델명으로, <b>전파인증(적합성평가)</b>은 인증번호로 조회합니다. (전파인증 무료 API는 인증번호 기준)</div>
 </header>
 
 <main>
   <div class="row search">
-    <input id="model" type="text" placeholder="모델명 입력 (예: SM-S921N)" autofocus />
+    <input id="model" type="text" placeholder="안전인증=모델명 / 전파인증=인증번호 (예: KCC-REM-MJT-MJT)" autofocus />
     <button class="primary" id="btn-both">둘 다 조회</button>
     <button id="btn-rra">전파인증만</button>
     <button id="btn-safety">안전인증만</button>
@@ -78,7 +78,7 @@
   <div class="cards">
     <section class="card" id="card-rra">
       <h2>전파인증 (적합성평가) <span class="badge" id="badge-rra">대기</span></h2>
-      <div class="body" id="body-rra"><span class="muted">모델명을 입력하고 조회하세요.</span></div>
+      <div class="body" id="body-rra"><span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span></div>
     </section>
     <section class="card" id="card-safety">
       <h2>안전인증 (KC) <span class="badge" id="badge-safety">대기</span></h2>
@@ -135,20 +135,20 @@
 
       <hr style="border-color:var(--line);margin:18px 0" />
 
-      <div class="field">
-        <label>전파인증 RRA 검색 URL</label>
-        <input id="cfg-rraSearch" type="text" />
-        <div class="hint">DevTools(F12) Network 탭에서 실제 검색 요청 URL 확인 후 수정 가능.</div>
-      </div>
       <div class="grid2">
         <div class="field">
-          <label>RRA 검색어 파라미터</label>
-          <input id="cfg-rraParam" type="text" />
+          <label>전파인증 인증여부 API (getAuthStatus)</label>
+          <input id="cfg-rraStatusUrl" type="text" />
         </div>
         <div class="field">
-          <label>RRA 검색유형 파라미터 (선택)</label>
-          <input id="cfg-rraTypeParam" type="text" placeholder="예: searchType=MODEL (값까지 key=value)" />
+          <label>전파인증 상세정보 API (getAuthInfo)</label>
+          <input id="cfg-rraInfoUrl" type="text" />
         </div>
+      </div>
+      <div class="field">
+        <label>전파인증 인증번호 파라미터</label>
+        <input id="cfg-rraParam" type="text" />
+        <div class="hint">RRA 무료 Open API는 <b>인증번호(mtlCefNo)</b>로 조회합니다(모델명 검색 아님). 예: <code>KCC-REM-MJT-MJT</code></div>
       </div>
 
       <div class="toolbar">
@@ -186,10 +186,10 @@ const DEFAULTS = {
   safetyBase: "",                 // 본인 API 상세페이지의 요청주소(오퍼레이션까지)
   safetyModelParam: "productName",// 모델/품명 검색 파라미터 (상세페이지에서 확인)
 
-  // ── 전파인증 (RRA 적합성평가 현황 검색) ──
-  rraSearch: "https://www.rra.go.kr/ko/license/A_c_search.do",
-  rraParam: "searchVal",          // 검색어 파라미터명
-  rraTypeParam: "",               // 선택: "searchType=MODEL" 형태 (key=value)
+  // ── 전파인증 (RRA 무료 Open API, emsit.go.kr) : 인증번호(mtlCefNo)로 조회 ──
+  rraStatusUrl: "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthStatus.do",
+  rraInfoUrl:   "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do",
+  rraParam: "mtlCefNo",           // 인증/등록번호 파라미터
   rraDetail: "https://www.rra.go.kr/ko/license/A_b_popup_keyno.do?key_no={certNo}",
 };
 
@@ -211,9 +211,9 @@ function fillSettings(){
   F("cfg-safetyKey").value = cfg.safetyKey;
   F("cfg-safetyBase").value = cfg.safetyBase;
   F("cfg-safetyModelParam").value = cfg.safetyModelParam;
-  F("cfg-rraSearch").value = cfg.rraSearch;
+  F("cfg-rraStatusUrl").value = cfg.rraStatusUrl;
+  F("cfg-rraInfoUrl").value = cfg.rraInfoUrl;
   F("cfg-rraParam").value = cfg.rraParam;
-  F("cfg-rraTypeParam").value = cfg.rraTypeParam;
   updateModeNote();
 }
 function readSettings(){
@@ -223,9 +223,9 @@ function readSettings(){
   cfg.safetyKey = F("cfg-safetyKey").value.trim();
   cfg.safetyBase = F("cfg-safetyBase").value.trim();
   cfg.safetyModelParam = F("cfg-safetyModelParam").value.trim() || "productName";
-  cfg.rraSearch = F("cfg-rraSearch").value.trim();
-  cfg.rraParam = F("cfg-rraParam").value.trim() || "searchVal";
-  cfg.rraTypeParam = F("cfg-rraTypeParam").value.trim();
+  cfg.rraStatusUrl = F("cfg-rraStatusUrl").value.trim();
+  cfg.rraInfoUrl = F("cfg-rraInfoUrl").value.trim();
+  cfg.rraParam = F("cfg-rraParam").value.trim() || "mtlCefNo";
 }
 function updateModeNote(){
   const n = F("mode-note");
@@ -266,13 +266,9 @@ function buildSafetyUrl(model){
   if(!u.searchParams.has("type")) u.searchParams.set("type","json");
   return u.toString();
 }
-function buildRraUrl(model){
-  const u = new URL(cfg.rraSearch);
-  u.searchParams.set(cfg.rraParam, model);
-  if(cfg.rraTypeParam.includes("=")){
-    const [k,v] = cfg.rraTypeParam.split("=");
-    u.searchParams.set(k.trim(), v.trim());
-  }
+function buildRraUrl(baseUrl, certNo){
+  const u = new URL(baseUrl);
+  u.searchParams.set(cfg.rraParam, certNo);
   return u.toString();
 }
 
@@ -319,31 +315,35 @@ function normalizeRecord(o){
   };
 }
 
-/* ---- 파서: 전파인증 RRA HTML 테이블 ---- */
-const CERT_RE = /\b(?:R-[A-Z]-[A-Za-z0-9]+-[A-Za-z0-9\-]+|MSIP-[A-Za-z]{2,4}-[A-Za-z0-9\-]+|KCC-[A-Za-z]{2,4}-[A-Za-z0-9\-]+|[A-Z]{2,4}-[A-Za-z0-9]+-[A-Za-z0-9\-]{3,})\b/;
-function parseRra(html, model){
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const rows = Array.from(doc.querySelectorAll("table tr"));
-  const out = [];
-  for(const tr of rows){
-    const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
-    if(!cells.length) continue;
-    const joined = cells.join(" | ");
-    const m = joined.match(CERT_RE);
-    if(!m) continue;
-    // 인증번호 셀과 모델로 보이는 셀 추정
-    const certNo = m[0];
-    const modelCell = cells.find(c => c && c!==certNo && /[A-Za-z0-9]/.test(c) && c.length<=40);
-    out.push({ certNo, model: modelCell||"", name: cells[1]||"", company: cells[0]||"", date:"",
-               detailUrl: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)),
-               _cells: cells });
+/* ---- 파서: 전파인증 (emsit.go.kr 응답 XML) ---- */
+// XML 태그값을 대소문자 무시하고 추출 (스펙 표기와 실제 응답 태그 케이스가 다름)
+function xmlText(doc, tag){
+  const els = doc.getElementsByTagName("*");
+  for(const el of els){
+    if(el.localName && el.localName.toLowerCase() === tag.toLowerCase()) return (el.textContent||"").trim();
   }
-  // 모델명과 더 잘 맞는 행을 위로
-  if(model){
-    const mm = model.toUpperCase();
-    out.sort((a,b)=> (b._cells.join(" ").toUpperCase().includes(mm)?1:0) - (a._cells.join(" ").toUpperCase().includes(mm)?1:0));
-  }
-  return out;
+  return "";
+}
+function parseRraStatus(xml){
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  return { resultCode: xmlText(doc,"resultCode"), resultMsg: xmlText(doc,"resultMsg"), authYn: xmlText(doc,"authYn") };
+}
+function parseRraInfo(xml){
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const code = xmlText(doc,"resultCode");
+  if(code && code !== "0000") return { found:false, resultCode:code, resultMsg:xmlText(doc,"resultMsg") };
+  return {
+    found: true, resultCode: code || "0000", resultMsg: xmlText(doc,"resultMsg"),
+    certNo:     xmlText(doc,"mtlCefNo"),
+    basicModel: xmlText(doc,"matlBscMdlNm"),
+    derivModel: xmlText(doc,"matlDerivMdlNm"),
+    name:       xmlText(doc,"mtlNm"),
+    company:    xmlText(doc,"bsmNm"),
+    maker:      xmlText(doc,"matlMfrNm"),
+    country:    xmlText(doc,"dttlInfCdNm"),
+    date:       xmlText(doc,"cvaPcsYmd"),
+    etc:        xmlText(doc,"matlEtcMtr"),
+  };
 }
 
 /* ---- 렌더링 ---- */
@@ -386,15 +386,47 @@ function renderError(which, err){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* ---- 조회 동작 ---- */
-async function queryRra(model){
+async function queryRra(certNo){
   setBadge("rra","run","조회중…");
   try{
-    const url = buildRraUrl(model);
-    const html = await proxiedFetch(url);
-    const items = parseRra(html, model);
-    setBadge("rra", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
-    renderResults("rra", items, html);
+    const statusXml = await proxiedFetch(buildRraUrl(cfg.rraStatusUrl, certNo)); // 인증여부
+    const st = parseRraStatus(statusXml);
+    const infoXml = await proxiedFetch(buildRraUrl(cfg.rraInfoUrl, certNo));     // 상세정보
+    const info = parseRraInfo(infoXml);
+    renderRra(certNo, st, info, statusXml + "\n\n----\n\n" + infoXml);
   }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
+}
+function renderRra(certNo, st, info, rawText){
+  const body = F("body-rra");
+  const certified = (st.authYn||"").toUpperCase()==="Y" || info.found;
+  setBadge("rra", certified?"ok":"err", certified?"인증 Y":"인증 N");
+  if(!certified){
+    let msg = "해당 인증번호의 인증내역이 없습니다 (미인증).";
+    if(st.resultCode==="0098" || info.resultCode==="0098") msg = "요청 파라미터(인증번호)가 누락되었습니다.";
+    // 입력이 인증번호 형태가 아니면(모델명으로 보이면) 안내
+    if(!/-/.test(certNo)) msg += "\n\n※ 전파인증 무료 API는 모델명이 아니라 '인증번호'로 조회합니다 (예: KCC-REM-MJT-MJT). 모델명으로 찾으려면 RRA 검색페이지를 이용하세요: https://www.rra.go.kr/ko/license/A_c_search.do";
+    body.innerHTML = `<div class="err-text">⚠️ ${escapeHtml(msg)}</div>`;
+  }else{
+    const detail = cfg.rraDetail.replace("{certNo}", encodeURIComponent(info.certNo || certNo));
+    body.innerHTML =
+      `<div class="result-item">
+         <div class="certno">${escapeHtml(info.certNo || certNo)} <a href="${detail}" target="_blank" rel="noopener">[상세]</a></div>
+         <div class="kv">
+           <div class="k">인증여부</div><div>✅ 인증됨 (Y)</div>
+           ${info.basicModel?`<div class="k">기본모델</div><div>${escapeHtml(info.basicModel)}</div>`:""}
+           ${info.derivModel?`<div class="k">파생모델</div><div>${escapeHtml(info.derivModel)}</div>`:""}
+           ${info.name?`<div class="k">기자재명칭</div><div>${escapeHtml(info.name)}</div>`:""}
+           ${info.company?`<div class="k">업체명</div><div>${escapeHtml(info.company)}</div>`:""}
+           ${info.maker?`<div class="k">제조자</div><div>${escapeHtml(info.maker)}</div>`:""}
+           ${info.country?`<div class="k">제조국</div><div>${escapeHtml(info.country)}</div>`:""}
+           ${info.date?`<div class="k">인증일자</div><div>${escapeHtml(info.date)}</div>`:""}
+           ${info.etc?`<div class="k">기타사항</div><div>${escapeHtml(info.etc)}</div>`:""}
+         </div>
+       </div>`;
+  }
+  if(F("show-debug").checked && rawText!=null){
+    const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=rawText.slice(0,8000); body.appendChild(pre);
+  }
 }
 async function querySafety(model){
   setBadge("safety","run","조회중…");
