@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>수입 모델 인증 확인 (전파인증 · 안전인증)</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#16212e; --panel2:#1c2a3a; --line:#2a3a4d;
+    --txt:#e6edf3; --muted:#9fb0c0; --accent:#4ea1ff; --ok:#3ecf8e; --warn:#ffcf5c; --err:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.5}
+  header{padding:22px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#16212e,#0f1720)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+  main{max-width:980px;margin:0 auto;padding:20px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select,button,textarea{font-size:14px;font-family:inherit}
+  input[type=text],input[type=password],select,textarea{
+    background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:10px 12px}
+  input[type=text]:focus,input[type=password]:focus{outline:none;border-color:var(--accent)}
+  .search input{flex:1;min-width:220px;font-size:16px;padding:13px 14px}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
+    border-radius:8px;padding:11px 16px;transition:.15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media(max-width:760px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .card h2{margin:0;padding:14px 16px;font-size:15px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center}
+  .card .body{padding:14px 16px;min-height:90px}
+  .badge{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+  .badge.ok{color:var(--ok);border-color:var(--ok)}
+  .badge.err{color:var(--err);border-color:var(--err)}
+  .badge.run{color:var(--warn);border-color:var(--warn)}
+  .certno{font-size:18px;font-weight:700;color:var(--ok);word-break:break-all}
+  .kv{display:grid;grid-template-columns:96px 1fr;gap:4px 10px;font-size:13px;margin-top:10px}
+  .kv .k{color:var(--muted)}
+  .result-item{padding:10px 0;border-bottom:1px dashed var(--line)}
+  .result-item:last-child{border-bottom:none}
+  .muted{color:var(--muted)}
+  .err-text{color:var(--err);font-size:13px;white-space:pre-wrap}
+  details.settings{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  details.settings>summary{cursor:pointer;padding:13px 16px;font-weight:600;user-select:none}
+  .settings .body{padding:0 16px 16px}
+  .field{margin-top:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input,.field select{width:100%}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr}}
+  a{color:var(--accent)}
+  pre.debug{background:#0b1219;border:1px solid var(--line);border-radius:8px;padding:10px;
+    font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}
+  .toolbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .note{font-size:12px;color:var(--warn);background:rgba(255,207,92,.08);
+    border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:10px 12px;margin-top:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>수입 모델 인증 확인</h1>
+  <div class="sub">모델명을 입력하면 <b>전파인증(적합성평가)</b>과 <b>안전인증(KC)</b>의 인증번호를 조회합니다.</div>
+</header>
+
+<main>
+  <div class="row search">
+    <input id="model" type="text" placeholder="모델명 입력 (예: SM-S921N)" autofocus />
+    <button class="primary" id="btn-both">둘 다 조회</button>
+    <button id="btn-rra">전파인증만</button>
+    <button id="btn-safety">안전인증만</button>
+  </div>
+
+  <div class="cards">
+    <section class="card" id="card-rra">
+      <h2>전파인증 (적합성평가) <span class="badge" id="badge-rra">대기</span></h2>
+      <div class="body" id="body-rra"><span class="muted">모델명을 입력하고 조회하세요.</span></div>
+    </section>
+    <section class="card" id="card-safety">
+      <h2>안전인증 (KC) <span class="badge" id="badge-safety">대기</span></h2>
+      <div class="body" id="body-safety"><span class="muted">설정에서 API 키를 입력한 뒤 조회하세요.</span></div>
+    </section>
+  </div>
+
+  <div class="note" id="mode-note"></div>
+
+  <details class="settings" id="settings">
+    <summary>⚙️ 설정 (프록시 · API 키 · 엔드포인트)</summary>
+    <div class="body">
+      <div class="field">
+        <label>연결 방식</label>
+        <select id="cfg-mode">
+          <option value="local">로컬 프록시 (server.py 실행 — 가장 안정적·안전)</option>
+          <option value="cors">공개 CORS 프록시 (GitHub Pages 등 단독 배포용)</option>
+        </select>
+        <div class="hint">로컬: server.py 가 같은 출처에서 <code>/fetch</code> 로 중계. 공개: 아래 CORS 프록시 경유(키가 외부를 지나가니 주의).</div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>로컬 프록시 주소</label>
+          <input id="cfg-localProxy" type="text" />
+          <div class="hint">기본 <code>/fetch</code> (server.py 와 같은 출처). 보통 수정 불필요.</div>
+        </div>
+        <div class="field">
+          <label>공개 CORS 프록시 템플릿</label>
+          <input id="cfg-corsProxy" type="text" />
+          <div class="hint"><code>{url}</code> 자리에 대상 URL 삽입. 예: allorigins / corsproxy.io</div>
+        </div>
+      </div>
+
+      <hr style="border-color:var(--line);margin:18px 0" />
+
+      <div class="field">
+        <label>안전인증 data.go.kr 서비스키 (serviceKey)</label>
+        <input id="cfg-safetyKey" type="password" placeholder="발급받은 일반 인증키(Decoding) 붙여넣기" />
+        <div class="hint">브라우저 localStorage 에만 저장됩니다. 깃허브에 커밋되지 않습니다.</div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>안전인증 요청 URL (오퍼레이션까지)</label>
+          <input id="cfg-safetyBase" type="text" placeholder="예: https://apis.data.go.kr/.../getCertificationInfo" />
+          <div class="hint">data.go.kr 본인 API 상세페이지의 "요청주소"를 그대로 입력.</div>
+        </div>
+        <div class="field">
+          <label>안전인증 모델명 파라미터</label>
+          <input id="cfg-safetyModelParam" type="text" placeholder="예: productName / certUid / modelName" />
+          <div class="hint">상세페이지 요청변수 표에서 모델/품명 검색 파라미터명 확인.</div>
+        </div>
+      </div>
+
+      <hr style="border-color:var(--line);margin:18px 0" />
+
+      <div class="field">
+        <label>전파인증 RRA 검색 URL</label>
+        <input id="cfg-rraSearch" type="text" />
+        <div class="hint">DevTools(F12) Network 탭에서 실제 검색 요청 URL 확인 후 수정 가능.</div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>RRA 검색어 파라미터</label>
+          <input id="cfg-rraParam" type="text" />
+        </div>
+        <div class="field">
+          <label>RRA 검색유형 파라미터 (선택)</label>
+          <input id="cfg-rraTypeParam" type="text" placeholder="예: searchType=MODEL (값까지 key=value)" />
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="cfg-save" class="primary">저장</button>
+        <button id="cfg-reset">기본값 복원</button>
+        <button id="cfg-test">연결 테스트</button>
+      </div>
+      <div class="hint" id="cfg-status"></div>
+    </div>
+  </details>
+
+  <label class="row" style="margin-top:14px;font-size:13px;color:var(--muted)">
+    <input type="checkbox" id="show-debug" style="width:auto" /> 디버그(원본 응답) 표시
+  </label>
+</main>
+
+<script>
+"use strict";
+
+/* =========================================================================
+ *  설정 / 엔드포인트  ── 모든 API 세부사항은 여기 + 설정 패널에서 조정합니다.
+ *  네트워크 정책으로 제작 환경에서 실제 응답 검증이 불가했으므로,
+ *  파라미터명/엔드포인트는 본인 환경(DevTools, data.go.kr 상세페이지)에서
+ *  확인 후 설정 패널에서 한 번만 맞춰주면 됩니다.
+ * ========================================================================= */
+const DEFAULTS = {
+  mode: "local",
+  // 로컬 프록시: server.py 가 같은 출처에서 /fetch?url=ENCODED 로 중계
+  localProxy: "/fetch",
+  // 공개 CORS 프록시 ({url} = 대상 URL). allorigins 가 raw 본문을 그대로 반환.
+  corsProxy: "https://api.allorigins.win/raw?url={url}",
+
+  // ── 안전인증 (data.go.kr: 제품 안전인증 및 리콜 정보, 데이터 15116894) ──
+  safetyKey: "",
+  safetyBase: "",                 // 본인 API 상세페이지의 요청주소(오퍼레이션까지)
+  safetyModelParam: "productName",// 모델/품명 검색 파라미터 (상세페이지에서 확인)
+
+  // ── 전파인증 (RRA 적합성평가 현황 검색) ──
+  rraSearch: "https://www.rra.go.kr/ko/license/A_c_search.do",
+  rraParam: "searchVal",          // 검색어 파라미터명
+  rraTypeParam: "",               // 선택: "searchType=MODEL" 형태 (key=value)
+  rraDetail: "https://www.rra.go.kr/ko/license/A_b_popup_keyno.do?key_no={certNo}",
+};
+
+const LS_KEY = "cert-checker-config-v1";
+let cfg = loadConfig();
+
+function loadConfig(){
+  try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY)||"{}")); }
+  catch(e){ return Object.assign({}, DEFAULTS); }
+}
+function saveConfig(){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
+
+/* ---- 설정 UI 바인딩 ---- */
+const F = id => document.getElementById(id);
+function fillSettings(){
+  F("cfg-mode").value = cfg.mode;
+  F("cfg-localProxy").value = cfg.localProxy;
+  F("cfg-corsProxy").value = cfg.corsProxy;
+  F("cfg-safetyKey").value = cfg.safetyKey;
+  F("cfg-safetyBase").value = cfg.safetyBase;
+  F("cfg-safetyModelParam").value = cfg.safetyModelParam;
+  F("cfg-rraSearch").value = cfg.rraSearch;
+  F("cfg-rraParam").value = cfg.rraParam;
+  F("cfg-rraTypeParam").value = cfg.rraTypeParam;
+  updateModeNote();
+}
+function readSettings(){
+  cfg.mode = F("cfg-mode").value;
+  cfg.localProxy = F("cfg-localProxy").value.trim();
+  cfg.corsProxy = F("cfg-corsProxy").value.trim();
+  cfg.safetyKey = F("cfg-safetyKey").value.trim();
+  cfg.safetyBase = F("cfg-safetyBase").value.trim();
+  cfg.safetyModelParam = F("cfg-safetyModelParam").value.trim() || "productName";
+  cfg.rraSearch = F("cfg-rraSearch").value.trim();
+  cfg.rraParam = F("cfg-rraParam").value.trim() || "searchVal";
+  cfg.rraTypeParam = F("cfg-rraTypeParam").value.trim();
+}
+function updateModeNote(){
+  const n = F("mode-note");
+  if(cfg.mode==="local"){
+    n.innerHTML = "🔌 <b>로컬 프록시 모드</b> — 먼저 터미널에서 <code>python3 server.py</code> 실행 후 표시되는 주소(예: http://localhost:8000)로 이 페이지를 여세요. API 키가 외부로 나가지 않습니다.";
+  }else{
+    n.innerHTML = "🌐 <b>공개 CORS 프록시 모드</b> — GitHub Pages 등 단독 배포에서 동작합니다. 요청이 제3자 프록시를 경유하므로 <b>민감한 키 사용에 주의</b>하세요. 프록시 가용성에 따라 실패할 수 있습니다.";
+  }
+}
+
+/* ---- 핵심: 대상 URL 을 프록시 경유로 가져오기 ---- */
+async function proxiedFetch(targetUrl){
+  let reqUrl;
+  if(cfg.mode==="local"){
+    const base = cfg.localProxy || "/fetch";
+    reqUrl = base + (base.includes("?")?"&":"?") + "url=" + encodeURIComponent(targetUrl);
+  }else{
+    if(!cfg.corsProxy.includes("{url}")) throw new Error("공개 CORS 프록시 템플릿에 {url} 자리표시자가 필요합니다.");
+    reqUrl = cfg.corsProxy.replace("{url}", encodeURIComponent(targetUrl));
+  }
+  const res = await fetch(reqUrl, { headers:{ "Accept":"application/json, text/html, */*" }});
+  const text = await res.text();
+  if(!res.ok) throw new Error("HTTP "+res.status+"\n"+text.slice(0,500));
+  return text;
+}
+
+/* ---- URL 빌더 ---- */
+function buildSafetyUrl(model){
+  if(!cfg.safetyBase) throw new Error("설정에서 '안전인증 요청 URL'을 입력하세요.");
+  if(!cfg.safetyKey)  throw new Error("설정에서 '안전인증 서비스키'를 입력하세요.");
+  const u = new URL(cfg.safetyBase);
+  // serviceKey 는 보통 디코딩키. URL 객체가 자동 인코딩하므로 그대로 set.
+  u.searchParams.set("serviceKey", cfg.safetyKey);
+  u.searchParams.set(cfg.safetyModelParam, model);
+  u.searchParams.set("pageNo", "1");
+  u.searchParams.set("numOfRows", "20");
+  if(!u.searchParams.has("returnType")) u.searchParams.set("returnType","json");
+  if(!u.searchParams.has("type")) u.searchParams.set("type","json");
+  return u.toString();
+}
+function buildRraUrl(model){
+  const u = new URL(cfg.rraSearch);
+  u.searchParams.set(cfg.rraParam, model);
+  if(cfg.rraTypeParam.includes("=")){
+    const [k,v] = cfg.rraTypeParam.split("=");
+    u.searchParams.set(k.trim(), v.trim());
+  }
+  return u.toString();
+}
+
+/* ---- 파서: 안전인증 (JSON 우선, 실패 시 XML) ---- */
+function parseSafety(text){
+  let items = [];
+  // 1) JSON 시도
+  try{
+    const j = JSON.parse(text);
+    let arr = deepFindArray(j);
+    items = (arr||[]).map(o => normalizeRecord(o));
+  }catch(e){
+    // 2) XML 시도
+    const doc = new DOMParser().parseFromString(text, "application/xml");
+    const items_ = doc.querySelectorAll("item");
+    items = Array.from(items_).map(node=>{
+      const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); });
+      return normalizeRecord(o);
+    });
+  }
+  return items;
+}
+// JSON 응답 안에서 레코드 배열을 재귀로 탐색 (data.go.kr 구조가 제각각이므로)
+function deepFindArray(obj){
+  if(Array.isArray(obj)) return obj;
+  if(obj && typeof obj==="object"){
+    for(const k of Object.keys(obj)){
+      const r = deepFindArray(obj[k]);
+      if(r && r.length && typeof r[0]==="object") return r;
+    }
+  }
+  return null;
+}
+// 다양한 필드명을 인증번호/모델/품명/업체/일자로 정규화
+function normalizeRecord(o){
+  const pick = (...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]) return String(o[ok]); } } return ""; };
+  return {
+    certNo: pick("certNum","certUid","certificationNumber","cert_no","certNo","인증번호","certnum"),
+    model:  pick("modelName","model","prdtModel","modelNm","모델명","derivationModel","basicModel"),
+    name:   pick("productName","prdtNm","itemName","품명","제품명","equipmentName","기자재명칭"),
+    company:pick("companyName","makerName","importerName","업체명","제조자","manufacturer","maker"),
+    date:   pick("certDate","certificationDate","인증일자","certDt","date"),
+    _raw:o
+  };
+}
+
+/* ---- 파서: 전파인증 RRA HTML 테이블 ---- */
+const CERT_RE = /\b(?:R-[A-Z]-[A-Za-z0-9]+-[A-Za-z0-9\-]+|MSIP-[A-Za-z]{2,4}-[A-Za-z0-9\-]+|KCC-[A-Za-z]{2,4}-[A-Za-z0-9\-]+|[A-Z]{2,4}-[A-Za-z0-9]+-[A-Za-z0-9\-]{3,})\b/;
+function parseRra(html, model){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const rows = Array.from(doc.querySelectorAll("table tr"));
+  const out = [];
+  for(const tr of rows){
+    const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
+    if(!cells.length) continue;
+    const joined = cells.join(" | ");
+    const m = joined.match(CERT_RE);
+    if(!m) continue;
+    // 인증번호 셀과 모델로 보이는 셀 추정
+    const certNo = m[0];
+    const modelCell = cells.find(c => c && c!==certNo && /[A-Za-z0-9]/.test(c) && c.length<=40);
+    out.push({ certNo, model: modelCell||"", name: cells[1]||"", company: cells[0]||"", date:"",
+               detailUrl: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)),
+               _cells: cells });
+  }
+  // 모델명과 더 잘 맞는 행을 위로
+  if(model){
+    const mm = model.toUpperCase();
+    out.sort((a,b)=> (b._cells.join(" ").toUpperCase().includes(mm)?1:0) - (a._cells.join(" ").toUpperCase().includes(mm)?1:0));
+  }
+  return out;
+}
+
+/* ---- 렌더링 ---- */
+function setBadge(which, state, label){
+  const b = F("badge-"+which);
+  b.className = "badge "+(state||"");
+  b.textContent = label;
+}
+function renderResults(which, items, rawText){
+  const body = F("body-"+which);
+  body.innerHTML = "";
+  if(!items.length){
+    body.innerHTML = '<span class="muted">검색 결과가 없습니다. 모델명/설정을 확인하세요.</span>';
+  }else{
+    items.slice(0,15).forEach(it=>{
+      const div = document.createElement("div");
+      div.className = "result-item";
+      const detail = it.detailUrl ? ` <a href="${it.detailUrl}" target="_blank" rel="noopener">[상세]</a>` : "";
+      div.innerHTML =
+        `<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}${detail}</div>
+         <div class="kv">
+           ${it.model?`<div class="k">모델</div><div>${escapeHtml(it.model)}</div>`:""}
+           ${it.name?`<div class="k">품명/기자재</div><div>${escapeHtml(it.name)}</div>`:""}
+           ${it.company?`<div class="k">업체</div><div>${escapeHtml(it.company)}</div>`:""}
+           ${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}
+         </div>`;
+      body.appendChild(div);
+    });
+  }
+  if(F("show-debug").checked && rawText!=null){
+    const pre = document.createElement("pre");
+    pre.className="debug";
+    pre.textContent = rawText.slice(0,8000);
+    body.appendChild(pre);
+  }
+}
+function renderError(which, err){
+  F("body-"+which).innerHTML = `<div class="err-text">⚠️ ${escapeHtml(err.message||String(err))}</div>`;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---- 조회 동작 ---- */
+async function queryRra(model){
+  setBadge("rra","run","조회중…");
+  try{
+    const url = buildRraUrl(model);
+    const html = await proxiedFetch(url);
+    const items = parseRra(html, model);
+    setBadge("rra", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
+    renderResults("rra", items, html);
+  }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
+}
+async function querySafety(model){
+  setBadge("safety","run","조회중…");
+  try{
+    const url = buildSafetyUrl(model);
+    const text = await proxiedFetch(url);
+    const items = parseSafety(text);
+    setBadge("safety", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
+    renderResults("safety", items, text);
+  }catch(e){ setBadge("safety","err","오류"); renderError("safety", e); }
+}
+function getModel(){
+  const m = F("model").value.trim();
+  if(!m){ alert("모델명을 입력하세요."); return null; }
+  return m;
+}
+
+/* ---- 이벤트 ---- */
+F("btn-both").onclick   = ()=>{ const m=getModel(); if(m){ queryRra(m); querySafety(m); } };
+F("btn-rra").onclick    = ()=>{ const m=getModel(); if(m) queryRra(m); };
+F("btn-safety").onclick = ()=>{ const m=getModel(); if(m) querySafety(m); };
+F("model").addEventListener("keydown", e=>{ if(e.key==="Enter") F("btn-both").click(); });
+
+F("cfg-save").onclick = ()=>{ readSettings(); saveConfig(); updateModeNote(); F("cfg-status").textContent="✅ 저장되었습니다."; };
+F("cfg-reset").onclick = ()=>{ if(confirm("기본값으로 복원할까요? (저장된 키 포함 초기화)")){ localStorage.removeItem(LS_KEY); cfg=loadConfig(); fillSettings(); F("cfg-status").textContent="기본값으로 복원했습니다."; } };
+F("cfg-mode").onchange = ()=>{ cfg.mode=F("cfg-mode").value; updateModeNote(); };
+F("cfg-test").onclick = async ()=>{
+  readSettings();
+  F("cfg-status").textContent="연결 테스트 중…";
+  try{
+    const t = await proxiedFetch("https://www.rra.go.kr/ko/main.do");
+    F("cfg-status").textContent = "✅ 프록시 연결 정상 (응답 "+t.length+" bytes)";
+  }catch(e){ F("cfg-status").textContent = "❌ 연결 실패: "+(e.message||e); }
+};
+
+fillSettings();
+</script>
+</body>
+</html>
