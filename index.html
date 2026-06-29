@@ -10,645 +10,263 @@
     --txt:#e6edf3; --muted:#9fb0c0; --accent:#4ea1ff; --ok:#3ecf8e; --warn:#ffcf5c; --err:#ff6b6b;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
-    background:var(--bg);color:var(--txt);line-height:1.5}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
   header{padding:22px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#16212e,#0f1720)}
-  h1{margin:0;font-size:20px}
-  .sub{color:var(--muted);font-size:13px;margin-top:6px}
-  main{max-width:980px;margin:0 auto;padding:20px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  h1{margin:0;font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:6px}
+  main{max-width:980px;margin:0 auto;padding:20px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   input,select,button,textarea{font-size:14px;font-family:inherit}
-  input[type=text],input[type=password],select,textarea{
-    background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:10px 12px}
-  input[type=text]:focus,input[type=password]:focus{outline:none;border-color:var(--accent)}
-  .search input{flex:1;min-width:220px;font-size:16px;padding:13px 14px}
-  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
-    border-radius:8px;padding:11px 16px;transition:.15s}
-  button:hover{border-color:var(--accent)}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
-  @media(max-width:760px){.cards{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .card h2{margin:0;padding:14px 16px;font-size:15px;border-bottom:1px solid var(--line);
-    display:flex;justify-content:space-between;align-items:center}
-  .card .body{padding:14px 16px;min-height:90px}
-  .badge{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
-  .badge.ok{color:var(--ok);border-color:var(--ok)}
-  .badge.err{color:var(--err);border-color:var(--err)}
-  .badge.run{color:var(--warn);border-color:var(--warn)}
-  .certno{font-size:18px;font-weight:700;color:var(--ok);word-break:break-all}
-  .kv{display:grid;grid-template-columns:96px 1fr;gap:4px 10px;font-size:13px;margin-top:10px}
-  .kv .k{color:var(--muted)}
-  .result-item{padding:10px 0;border-bottom:1px dashed var(--line)}
-  .result-item:last-child{border-bottom:none}
-  .muted{color:var(--muted)}
-  .err-text{color:var(--err);font-size:13px;white-space:pre-wrap}
-  details.settings{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
-  details.settings>summary{cursor:pointer;padding:13px 16px;font-weight:600;user-select:none}
-  .settings .body{padding:0 16px 16px}
-  .field{margin-top:12px}
-  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
-  .field input,.field select{width:100%}
-  .hint{font-size:11px;color:var(--muted);margin-top:4px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media(max-width:600px){.grid2{grid-template-columns:1fr}}
-  a{color:var(--accent)}
-  pre.debug{background:#0b1219;border:1px solid var(--line);border-radius:8px;padding:10px;
-    font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}
-  .toolbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-  .note{font-size:12px;color:var(--warn);background:rgba(255,207,92,.08);
-    border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:10px 12px;margin-top:14px}
+  input[type=text],input[type=password],select,textarea{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:10px 12px}
+  input[type=text]:focus,input[type=password]:focus{outline:none;border-color:var(--accent)}.search input{flex:1;min-width:220px;font-size:16px;padding:13px 14px}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:8px;padding:11px 16px;transition:.15s}
+  button:hover{border-color:var(--accent)}button.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}button:disabled{opacity:.5;cursor:not-allowed}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}@media(max-width:760px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.card h2{margin:0;padding:14px 16px;font-size:15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.card .body{padding:14px 16px;min-height:90px}
+  .badge{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}.badge.ok{color:var(--ok);border-color:var(--ok)}.badge.err{color:var(--err);border-color:var(--err)}.badge.run{color:var(--warn);border-color:var(--warn)}
+  .certno{font-size:18px;font-weight:700;color:var(--ok);word-break:break-all}.kv{display:grid;grid-template-columns:96px 1fr;gap:4px 10px;font-size:13px;margin-top:10px}.kv .k{color:var(--muted)}
+  .result-item{padding:10px 0;border-bottom:1px dashed var(--line)}.result-item:last-child{border-bottom:none}.muted{color:var(--muted)}.err-text{color:var(--err);font-size:13px;white-space:pre-wrap}
+  details.settings{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}details.settings>summary{cursor:pointer;padding:13px 16px;font-weight:600;user-select:none}.settings .body{padding:0 16px 16px}
+  .field{margin-top:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%}.hint{font-size:11px;color:var(--muted);margin-top:4px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+  a{color:var(--accent)}pre.debug{background:#0b1219;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}.toolbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .note{font-size:12px;color:var(--warn);background:rgba(255,207,92,.08);border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:10px 12px;margin-top:14px}.note.ok{color:var(--ok);border-color:rgba(62,207,142,.4);background:rgba(62,207,142,.08)}.note.err{color:var(--err);border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.08)}
 </style>
 </head>
 <body>
 <header>
   <h1>수입 모델 인증 확인</h1>
-  <div class="sub"><b>전파인증</b>은 모델명(로컬 DB)·인증번호(무료 API)·모델명(data.go.kr 키)으로, <b>안전인증(KC)</b>은 모델명으로 조회합니다.</div>
+  <div class="sub"><b>전파인증</b>은 로컬 DB 모델명 검색·인증번호 API 조회를 지원합니다. <b>안전인증(KC)</b>은 AuthKey 헤더가 필요하므로 백엔드 프록시가 필요합니다.</div>
 </header>
-
 <main>
   <div class="row search">
-    <input id="model" type="text" placeholder="안전인증=모델명 / 전파인증=인증번호 (예: KCC-REM-MJT-MJT)" autofocus />
+    <input id="model" type="text" placeholder="모델명 또는 전파 인증번호 (예: R-R-ABC-MODEL / KCC-REM-MJT-MJT)" autofocus />
     <button class="primary" id="btn-both">둘 다 조회</button>
     <button id="btn-rra">전파인증만</button>
     <button id="btn-safety">안전인증만</button>
   </div>
-
   <div class="cards">
     <section class="card" id="card-rra">
       <h2>전파인증 (적합성평가) <span class="badge" id="badge-rra">대기</span></h2>
       <div class="rra-mode" style="padding:8px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)">
         조회 기준:
-        <label style="margin-left:6px"><input type="radio" name="rraMode" value="db" checked style="width:auto" /> 모델명·로컬DB <span style="font-size:11px">(키 불필요)</span></label>
-        <label style="margin-left:12px"><input type="radio" name="rraMode" value="cert" style="width:auto" /> 인증번호 <span style="font-size:11px">(무료 API)</span></label>
-        <label style="margin-left:12px"><input type="radio" name="rraMode" value="live" style="width:auto" /> 모델명·실시간조회 <span style="font-size:11px">(RRA 직접·키 불필요)</span></label>
+        <label style="margin-left:6px"><input type="radio" name="rraMode" value="db" checked style="width:auto" /> 모델명·로컬DB <span style="font-size:11px">(GitHub Pages 가능)</span></label>
+        <label style="margin-left:12px"><input type="radio" name="rraMode" value="cert" style="width:auto" /> 인증번호 <span style="font-size:11px">(프록시 필요)</span></label>
+        <label style="margin-left:12px"><input type="radio" name="rraMode" value="live" style="width:auto" /> 모델명·실시간조회 <span style="font-size:11px">(로컬/서버 프록시 필요)</span></label>
       </div>
-      <div class="body" id="body-rra"><span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span></div>
+      <div class="body" id="body-rra"><span class="muted">모델명/파생모델명을 입력하고 조회하세요. (rra_db.json 사용 · 키 불필요)</span></div>
     </section>
     <section class="card" id="card-safety">
       <h2>안전인증 (KC) <span class="badge" id="badge-safety">대기</span></h2>
-      <div class="body" id="body-safety"><span class="muted">설정에서 AuthKey 를 입력하고(로컬 프록시 모드), 모델명으로 조회하세요.</span></div>
+      <div class="body" id="body-safety"><span class="muted">AuthKey 헤더 인증이 필요합니다. GitHub Pages 단독 실행은 불가하며 로컬 server.py 또는 별도 백엔드 프록시가 필요합니다.</span></div>
     </section>
   </div>
-
   <div class="note" id="mode-note"></div>
-
   <details class="settings" id="settings">
     <summary>⚙️ 설정 (프록시 · API 키 · 엔드포인트)</summary>
     <div class="body">
       <div class="field">
         <label>연결 방식</label>
         <select id="cfg-mode">
-          <option value="local">로컬 프록시 (server.py 실행 — 가장 안정적·안전)</option>
-          <option value="cors">공개 CORS 프록시 (GitHub Pages 등 단독 배포용)</option>
+          <option value="local">로컬/전용 프록시 (server.py 또는 별도 백엔드)</option>
+          <option value="cors">공개 CORS 프록시 (GitHub Pages 단독 배포용 · 제한적)</option>
         </select>
-        <div class="hint">로컬: server.py 가 같은 출처에서 <code>/fetch</code> 로 중계. 공개: 아래 CORS 프록시 경유(키가 외부를 지나가니 주의).</div>
+        <div class="hint">GitHub Pages는 정적 호스팅이라 <code>/fetch</code>가 실행되지 않습니다. 안전인증·RRA 실시간 조회는 반드시 로컬/전용 프록시가 필요합니다.</div>
       </div>
-
       <div class="grid2">
         <div class="field">
-          <label>로컬 프록시 주소</label>
+          <label>로컬/전용 프록시 주소</label>
           <input id="cfg-localProxy" type="text" />
-          <div class="hint">기본 <code>/fetch</code> (server.py 와 같은 출처). 보통 수정 불필요.</div>
+          <div class="hint">로컬 실행: <code>/fetch</code>. GitHub Pages 화면에서 로컬 server.py를 같이 쓰려면 <code>http://localhost:8000/fetch</code>.</div>
         </div>
         <div class="field">
           <label>공개 CORS 프록시 템플릿</label>
           <input id="cfg-corsProxy" type="text" />
-          <div class="hint"><code>{url}</code> 자리에 대상 URL 삽입. 예: allorigins / corsproxy.io</div>
+          <div class="hint"><code>{url}</code> 자리에 대상 URL 삽입. 공개 프록시는 헤더/AuthKey/POST 전달이 제한됩니다.</div>
         </div>
       </div>
-
       <hr style="border-color:var(--line);margin:18px 0" />
-
       <div class="field">
         <label>안전인증 AuthKey (SafetyKorea 서비스 ID)</label>
         <input id="cfg-safetyKey" type="password" placeholder="국가기술표준원에서 발급받은 서비스 ID" />
-        <div class="hint">HTTP 헤더 <code>AuthKey</code> 로 전송됩니다. 대소문자 구분. localStorage 에만 저장(깃허브 미커밋). <b>로컬 프록시 모드 필요.</b></div>
+        <div class="hint">HTTP 헤더 <code>AuthKey</code> 로 전송됩니다. GitHub Pages 단독 배포에서는 브라우저만으로 안전하게 처리할 수 없습니다.</div>
       </div>
       <div class="grid2">
-        <div class="field">
-          <label>안전인증 요청 URL</label>
-          <input id="cfg-safetyBase" type="text" />
-          <div class="hint">SafetyKorea KC인증정보 조회. 기본값 그대로 사용 권장.</div>
-        </div>
+        <div class="field"><label>안전인증 요청 URL</label><input id="cfg-safetyBase" type="text" /></div>
         <div class="field">
           <label>검색 구분 (conditionKey)</label>
           <select id="cfg-safetyConditionKey">
-            <option value="modelName">modelName (모델명)</option>
-            <option value="certNum">certNum (인증번호)</option>
-            <option value="productName">productName (제품명)</option>
-            <option value="all">all (전체)</option>
-            <option value="certDate">certDate (인증일자)</option>
-            <option value="signDate">signDate (등록일)</option>
+            <option value="modelName">modelName (모델명)</option><option value="certNum">certNum (인증번호)</option><option value="productName">productName (제품명)</option><option value="all">all (전체)</option><option value="certDate">certDate (인증일자)</option><option value="signDate">signDate (등록일)</option>
           </select>
-          <div class="hint">입력값(검색어)을 무엇으로 검색할지. 기본 모델명.</div>
         </div>
       </div>
-
       <hr style="border-color:var(--line);margin:18px 0" />
-
       <div class="grid2">
-        <div class="field">
-          <label>전파인증 인증여부 API (getAuthStatus)</label>
-          <input id="cfg-rraStatusUrl" type="text" />
-        </div>
-        <div class="field">
-          <label>전파인증 상세정보 API (getAuthInfo)</label>
-          <input id="cfg-rraInfoUrl" type="text" />
-        </div>
+        <div class="field"><label>전파인증 인증여부 API (getAuthStatus)</label><input id="cfg-rraStatusUrl" type="text" /></div>
+        <div class="field"><label>전파인증 상세정보 API (getAuthInfo)</label><input id="cfg-rraInfoUrl" type="text" /></div>
       </div>
-      <div class="field">
-        <label>전파인증 인증번호 파라미터</label>
-        <input id="cfg-rraParam" type="text" />
-        <div class="hint">RRA 무료 Open API는 <b>인증번호(mtlCefNo)</b>로 조회합니다. 예: <code>KCC-REM-MJT-MJT</code></div>
-      </div>
-
-      <div class="field">
-        <label>전파인증 실시간 조회 URL (RRA A_c_search_view.do)</label>
-        <input id="cfg-rraLiveUrl" type="text" />
-        <div class="hint">'모델명·실시간조회' 모드에서 RRA 검색을 직접 POST 합니다. <b>로컬 프록시 모드 필요.</b></div>
-      </div>
+      <div class="field"><label>전파인증 인증번호 파라미터</label><input id="cfg-rraParam" type="text" /><div class="hint">RRA 무료 Open API는 <b>인증번호(mtlCefNo)</b>로 조회합니다.</div></div>
+      <div class="field"><label>전파인증 실시간 조회 URL (RRA A_c_search_view.do)</label><input id="cfg-rraLiveUrl" type="text" /><div class="hint">모델명 실시간 조회는 RRA 사이트에 POST 하므로 GitHub Pages 단독 모드에서는 사용할 수 없습니다.</div></div>
       <div class="grid2">
-        <div class="field">
-          <label>인증일자 시작 (YYYYMMDD)</label>
-          <input id="cfg-rraLiveFrom" type="text" placeholder="20000101" />
-        </div>
-        <div class="field">
-          <label>인증일자 종료 (YYYYMMDD, 비우면 오늘)</label>
-          <input id="cfg-rraLiveTo" type="text" placeholder="(오늘)" />
-        </div>
+        <div class="field"><label>인증일자 시작 (YYYYMMDD)</label><input id="cfg-rraLiveFrom" type="text" placeholder="20000101" /></div>
+        <div class="field"><label>인증일자 종료 (YYYYMMDD, 비우면 오늘)</label><input id="cfg-rraLiveTo" type="text" placeholder="(오늘)" /></div>
       </div>
-      <div class="field">
-        <label>전파인증 로컬 DB 파일 경로</label>
-        <input id="cfg-dbUrl" type="text" />
-        <div class="hint"><code>build_db.py</code> 로 만든 <code>rra_db.json</code>. index.html 과 같은 위치에 두면 됩니다.</div>
-      </div>
-
-      <div class="toolbar">
-        <button id="cfg-save" class="primary">저장</button>
-        <button id="cfg-reset">기본값 복원</button>
-        <button id="cfg-test">연결 테스트</button>
-      </div>
+      <div class="field"><label>전파인증 로컬 DB 파일 경로</label><input id="cfg-dbUrl" type="text" /><div class="hint"><code>rra_db.json</code>을 index.html과 같은 위치에 두면 GitHub Pages에서도 모델명 검색이 가능합니다.</div></div>
+      <div class="toolbar"><button id="cfg-save" class="primary">저장</button><button id="cfg-reset">기본값 복원</button><button id="cfg-test">연결 테스트</button></div>
       <div class="hint" id="cfg-status"></div>
     </div>
   </details>
-
-  <label class="row" style="margin-top:14px;font-size:13px;color:var(--muted)">
-    <input type="checkbox" id="show-debug" style="width:auto" /> 디버그(원본 응답) 표시
-  </label>
+  <label class="row" style="margin-top:14px;font-size:13px;color:var(--muted)"><input type="checkbox" id="show-debug" style="width:auto" /> 디버그(원본 응답) 표시</label>
 </main>
-
 <script>
 "use strict";
 
-/* =========================================================================
- *  설정 / 엔드포인트  ── 모든 API 세부사항은 여기 + 설정 패널에서 조정합니다.
- *  네트워크 정책으로 제작 환경에서 실제 응답 검증이 불가했으므로,
- *  파라미터명/엔드포인트는 본인 환경(DevTools, data.go.kr 상세페이지)에서
- *  확인 후 설정 패널에서 한 번만 맞춰주면 됩니다.
- * ========================================================================= */
+function isGithubPagesHost(){
+  return /(^|\.)github\.io$/i.test(location.hostname);
+}
+function isStaticHosted(){
+  return isGithubPagesHost() || (location.protocol === "https:" && !["localhost","127.0.0.1"].includes(location.hostname));
+}
+
 const DEFAULTS = {
-  mode: "local",
-  // 로컬 프록시: server.py 가 같은 출처에서 /fetch?url=ENCODED 로 중계
-  localProxy: "/fetch",
-  // 공개 CORS 프록시 ({url} = 대상 URL). allorigins 가 raw 본문을 그대로 반환.
+  mode: isGithubPagesHost() ? "cors" : "local",
+  localProxy: isGithubPagesHost() ? "http://localhost:8000/fetch" : "/fetch",
   corsProxy: "https://api.allorigins.win/raw?url={url}",
-
-  // 전파인증 로컬 DB (build_db.py 로 생성한 rra_db.json, index.html 과 같은 위치)
   dbUrl: "rra_db.json",
-
-  // ── 안전인증 (data.go.kr: 제품 안전인증 및 리콜 정보, 데이터 15116894) ──
-  safetyKey: "",                  // SafetyKorea 서비스 ID (AuthKey 헤더로 전송)
+  safetyKey: "",
   safetyBase: "http://www.safetykorea.kr/openapi/api/cert/certificationList.json",
-  safetyConditionKey: "modelName",// 검색구분: all/certNum/productName/modelName/certDate/signDate
-
-  // ── 전파인증 (RRA 무료 Open API, emsit.go.kr) : 인증번호(mtlCefNo)로 조회 ──
+  safetyConditionKey: "modelName",
   rraStatusUrl: "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthStatus.do",
-  rraInfoUrl:   "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do",
-  rraParam: "mtlCefNo",           // 인증/등록번호 파라미터
+  rraInfoUrl: "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do",
+  rraParam: "mtlCefNo",
   rraDetail: "https://www.rra.go.kr/ko/license/A_b_popup_keyno.do?key_no={certNo}",
-  // ── 전파인증 모델명 실시간 조회 (RRA A_c_search_view.do 직접 POST) ──
   rraLiveUrl: "https://www.rra.go.kr/ko/license/A_c_search_view.do",
-  rraLiveFrom: "20000101",  // 인증일자 시작(YYYYMMDD)
-  rraLiveTo: "",            // 종료(YYYYMMDD), 비우면 오늘
+  rraLiveFrom: "20000101",
+  rraLiveTo: ""
 };
-
-const LS_KEY = "cert-checker-config-v1";
+const LS_KEY = "cert-checker-config-v2";
 let cfg = loadConfig();
+const F = id => document.getElementById(id);
 
 function loadConfig(){
   try{
-    const c = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY)||"{}"));
-    // 구버전 저장값 보정: 비어있으면 새 기본값으로
-    if(!c.safetyBase) c.safetyBase = DEFAULTS.safetyBase;
-    if(!c.safetyConditionKey) c.safetyConditionKey = DEFAULTS.safetyConditionKey;
+    const saved = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    const c = Object.assign({}, DEFAULTS, saved);
+    if(isGithubPagesHost() && c.mode === "local" && (!c.localProxy || c.localProxy === "/fetch")){
+      c.mode = "cors";
+      c.localProxy = "http://localhost:8000/fetch";
+    }
     return c;
-  }
-  catch(e){ return Object.assign({}, DEFAULTS); }
+  }catch(e){ return Object.assign({}, DEFAULTS); }
 }
 function saveConfig(){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
-
-/* ---- 설정 UI 바인딩 ---- */
-const F = id => document.getElementById(id);
 function fillSettings(){
-  F("cfg-mode").value = cfg.mode;
-  F("cfg-localProxy").value = cfg.localProxy;
-  F("cfg-corsProxy").value = cfg.corsProxy;
-  F("cfg-safetyKey").value = cfg.safetyKey;
-  F("cfg-safetyBase").value = cfg.safetyBase;
-  F("cfg-safetyConditionKey").value = cfg.safetyConditionKey;
-  F("cfg-rraStatusUrl").value = cfg.rraStatusUrl;
-  F("cfg-rraInfoUrl").value = cfg.rraInfoUrl;
-  F("cfg-rraParam").value = cfg.rraParam;
-  F("cfg-rraLiveUrl").value = cfg.rraLiveUrl;
-  F("cfg-rraLiveFrom").value = cfg.rraLiveFrom;
-  F("cfg-rraLiveTo").value = cfg.rraLiveTo;
-  F("cfg-dbUrl").value = cfg.dbUrl;
+  F("cfg-mode").value = cfg.mode; F("cfg-localProxy").value = cfg.localProxy; F("cfg-corsProxy").value = cfg.corsProxy;
+  F("cfg-safetyKey").value = cfg.safetyKey; F("cfg-safetyBase").value = cfg.safetyBase; F("cfg-safetyConditionKey").value = cfg.safetyConditionKey;
+  F("cfg-rraStatusUrl").value = cfg.rraStatusUrl; F("cfg-rraInfoUrl").value = cfg.rraInfoUrl; F("cfg-rraParam").value = cfg.rraParam;
+  F("cfg-rraLiveUrl").value = cfg.rraLiveUrl; F("cfg-rraLiveFrom").value = cfg.rraLiveFrom; F("cfg-rraLiveTo").value = cfg.rraLiveTo; F("cfg-dbUrl").value = cfg.dbUrl;
   updateModeNote();
 }
 function readSettings(){
   cfg.mode = F("cfg-mode").value;
-  cfg.localProxy = F("cfg-localProxy").value.trim();
-  cfg.corsProxy = F("cfg-corsProxy").value.trim();
+  cfg.localProxy = F("cfg-localProxy").value.trim() || DEFAULTS.localProxy;
+  cfg.corsProxy = F("cfg-corsProxy").value.trim() || DEFAULTS.corsProxy;
   cfg.safetyKey = F("cfg-safetyKey").value.trim();
-  cfg.safetyBase = F("cfg-safetyBase").value.trim() || "http://www.safetykorea.kr/openapi/api/cert/certificationList.json";
+  cfg.safetyBase = F("cfg-safetyBase").value.trim() || DEFAULTS.safetyBase;
   cfg.safetyConditionKey = F("cfg-safetyConditionKey").value || "modelName";
-  cfg.rraStatusUrl = F("cfg-rraStatusUrl").value.trim();
-  cfg.rraInfoUrl = F("cfg-rraInfoUrl").value.trim();
+  cfg.rraStatusUrl = F("cfg-rraStatusUrl").value.trim() || DEFAULTS.rraStatusUrl;
+  cfg.rraInfoUrl = F("cfg-rraInfoUrl").value.trim() || DEFAULTS.rraInfoUrl;
   cfg.rraParam = F("cfg-rraParam").value.trim() || "mtlCefNo";
-  cfg.rraLiveUrl = F("cfg-rraLiveUrl").value.trim() || "https://www.rra.go.kr/ko/license/A_c_search_view.do";
+  cfg.rraLiveUrl = F("cfg-rraLiveUrl").value.trim() || DEFAULTS.rraLiveUrl;
   cfg.rraLiveFrom = F("cfg-rraLiveFrom").value.trim() || "20000101";
   cfg.rraLiveTo = F("cfg-rraLiveTo").value.trim();
   cfg.dbUrl = F("cfg-dbUrl").value.trim() || "rra_db.json";
 }
 function updateModeNote(){
   const n = F("mode-note");
-  if(cfg.mode==="local"){
-    n.innerHTML = "🔌 <b>로컬 프록시 모드</b> — 먼저 터미널에서 <code>python3 server.py</code> 실행 후 표시되는 주소(예: http://localhost:8000)로 이 페이지를 여세요. API 키가 외부로 나가지 않습니다.";
+  n.className = "note";
+  if(isGithubPagesHost() && cfg.mode === "cors"){
+    n.innerHTML = "<b>GitHub Pages 감지됨</b> — Pages는 정적 호스팅이라 <code>server.py</code>와 <code>/fetch</code>가 실행되지 않습니다. 모델명·로컬DB 검색은 가능하고, 안전인증/AuthKey 및 RRA 실시간조회는 로컬 server.py 또는 별도 백엔드가 필요합니다.";
+  }else if(cfg.mode === "local"){
+    n.innerHTML = "<b>로컬/전용 프록시 모드</b> — 로컬에서 열면 <code>python3 server.py</code> 실행 후 <code>http://localhost:8000</code>로 접속하세요. GitHub Pages 화면에서 로컬 서버를 같이 쓰려면 프록시 주소를 <code>http://localhost:8000/fetch</code>로 두세요.";
   }else{
-    n.innerHTML = "🌐 <b>공개 CORS 프록시 모드</b> — GitHub Pages 등 단독 배포에서 동작합니다. 요청이 제3자 프록시를 경유하므로 <b>민감한 키 사용에 주의</b>하세요. 프록시 가용성에 따라 실패할 수 있습니다.";
+    n.innerHTML = "<b>공개 CORS 프록시 모드</b> — GitHub Pages 단독 배포에서 일부 GET 조회만 동작합니다. 공개 프록시는 AuthKey 헤더와 POST를 안정적으로 전달하지 못합니다.";
   }
 }
 
-/* ---- 핵심: 대상 URL 을 프록시 경유로 가져오기 ---- */
 async function proxiedFetch(targetUrl, extraHeaders, postBody){
   let reqUrl;
-  const headers = Object.assign({ "Accept":"application/json, text/html, */*" }, extraHeaders||{});
-  if(cfg.mode==="local"){
+  const headers = Object.assign({"Accept":"application/json, text/html, application/xml, */*"}, extraHeaders||{});
+  if(cfg.mode === "local"){
     const base = cfg.localProxy || "/fetch";
-    reqUrl = base + (base.includes("?")?"&":"?") + "url=" + encodeURIComponent(targetUrl);
+    if(isStaticHosted() && base.startsWith("/")){
+      throw new Error("GitHub Pages에서는 /fetch 백엔드가 실행되지 않아 HTTP 405가 발생합니다. 설정에서 연결 방식을 '공개 CORS 프록시'로 바꾸거나, server.py를 실행한 뒤 프록시 주소를 http://localhost:8000/fetch 로 입력하세요.");
+    }
+    reqUrl = base + (base.includes("?") ? "&" : "?") + "url=" + encodeURIComponent(targetUrl);
   }else{
+    if(postBody != null || Object.keys(extraHeaders||{}).length){
+      throw new Error("공개 CORS 프록시는 POST 또는 AuthKey 같은 커스텀 헤더 전달이 제한됩니다. 이 조회는 로컬/전용 프록시가 필요합니다.");
+    }
     if(!cfg.corsProxy.includes("{url}")) throw new Error("공개 CORS 프록시 템플릿에 {url} 자리표시자가 필요합니다.");
     reqUrl = cfg.corsProxy.replace("{url}", encodeURIComponent(targetUrl));
   }
-  const init = { headers };
-  if(postBody != null){
-    init.method = "POST";
-    headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
-    init.body = postBody;
-  }
+  const init = {headers};
+  if(postBody != null){ init.method = "POST"; headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"; init.body = postBody; }
   const res = await fetch(reqUrl, init);
   const text = await res.text();
-  if(!res.ok) throw new Error("HTTP "+res.status+"\n"+text.slice(0,500));
+  if(!res.ok) throw new Error("HTTP " + res.status + "\n" + text.slice(0,500));
   return text;
 }
 
-/* ---- URL 빌더 ---- */
-function buildSafetyUrl(model){
-  if(!cfg.safetyBase) throw new Error("설정에서 '안전인증 요청 URL'을 입력하세요.");
-  // SafetyKorea KC인증정보 조회: conditionKey=검색구분, conditionValue=검색어
-  const u = new URL(cfg.safetyBase);
-  u.searchParams.set("conditionKey", cfg.safetyConditionKey || "modelName");
-  u.searchParams.set("conditionValue", model);
-  return u.toString();
-}
-function buildRraUrl(baseUrl, certNo){
-  const u = new URL(baseUrl);
-  u.searchParams.set(cfg.rraParam, certNo);
-  return u.toString();
-}
+function buildSafetyUrl(model){ const u = new URL(cfg.safetyBase); u.searchParams.set("conditionKey", cfg.safetyConditionKey || "modelName"); u.searchParams.set("conditionValue", model); return u.toString(); }
+function buildRraUrl(baseUrl, certNo){ const u = new URL(baseUrl); u.searchParams.set(cfg.rraParam, certNo); return u.toString(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function setBadge(which, state, label){ const b=F("badge-"+which); b.className="badge "+(state||""); b.textContent=label; }
+function renderError(which, err){ F("body-"+which).innerHTML = `<div class="err-text">⚠️ ${escapeHtml(err.message||String(err))}</div>`; }
+function showDebug(body, raw){ if(F("show-debug").checked && raw!=null){ const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=String(raw).slice(0,8000); body.appendChild(pre); } }
 
-/* ---- 파서: 안전인증 (SafetyKorea KC인증정보) ---- */
-// 응답: { resultCode:"2000", resultMsg:"Success", resultData:[ {certNum, certState, modelName, ...} ] }
 function parseSafety(text){
   let j;
   try{ j = JSON.parse(text); }
-  catch(e){
-    // XML(.xml 확장자) 응답 폴백
-    const doc = new DOMParser().parseFromString(text, "application/xml");
-    const nodes = doc.querySelectorAll("resultData, item");
-    return Array.from(nodes).map(node=>{ const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); }); return normalizeSafety(o); });
-  }
+  catch(e){ const doc = new DOMParser().parseFromString(text,"application/xml"); const nodes = doc.querySelectorAll("resultData, item"); return Array.from(nodes).map(node=>{ const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); }); return normalizeSafety(o); }); }
   const code = String(j.resultCode!=null ? j.resultCode : "");
   if(code && code !== "2000") throw new Error("SafetyKorea 응답 오류 ["+code+"] "+(j.resultMsg||"")+"\n(AuthKey/검색구분 확인)");
   const arr = Array.isArray(j.resultData) ? j.resultData : (deepFindArray(j) || []);
   return arr.map(normalizeSafety);
 }
-// JSON 응답 안에서 레코드 배열을 재귀로 탐색 (data.go.kr 구조가 제각각이므로)
-function deepFindArray(obj){
-  if(Array.isArray(obj)) return obj;
-  if(obj && typeof obj==="object"){
-    for(const k of Object.keys(obj)){
-      const r = deepFindArray(obj[k]);
-      if(r && r.length && typeof r[0]==="object") return r;
-    }
-  }
-  return null;
-}
-// SafetyKorea 인증 레코드 정규화
-function normalizeSafety(o){
-  const pick = (...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]!=null && o[ok]!=="") return String(o[ok]); } } return ""; };
-  return {
-    certNo:  pick("certNum"),
-    status:  pick("certState"),
-    model:   pick("modelName"),
-    name:    pick("productName"),
-    company: pick("makerName"),
-    importer:pick("importerName"),
-    country: pick("makerCntryName"),
-    div:     pick("certDiv"),
-    date:    pick("certDate"),
-    _raw:o
-  };
-}
+function deepFindArray(obj){ if(Array.isArray(obj)) return obj; if(obj && typeof obj==="object"){ for(const k of Object.keys(obj)){ const r=deepFindArray(obj[k]); if(r && r.length && typeof r[0]==="object") return r; } } return null; }
+function normalizeSafety(o){ const pick=(...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]!=null && o[ok]!=="") return String(o[ok]); } } return ""; }; return {certNo:pick("certNum"),status:pick("certState"),model:pick("modelName"),name:pick("productName"),company:pick("makerName"),importer:pick("importerName"),country:pick("makerCntryName"),div:pick("certDiv"),date:pick("certDate"),_raw:o}; }
+function renderSafety(items, raw){ const body=F("body-safety"); body.innerHTML=""; if(!items.length){ body.innerHTML='<span class="muted">검색 결과가 없습니다. 모델명/검색구분/AuthKey를 확인하세요.</span>'; } else items.slice(0,30).forEach(it=>{ const div=document.createElement("div"); div.className="result-item"; div.innerHTML=`<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}</div><div class="kv">${it.status?`<div class="k">인증상태</div><div>${escapeHtml(it.status)}</div>`:""}${it.model?`<div class="k">모델명</div><div>${escapeHtml(it.model)}</div>`:""}${it.name?`<div class="k">제품명</div><div>${escapeHtml(it.name)}</div>`:""}${it.div?`<div class="k">인증구분</div><div>${escapeHtml(it.div)}</div>`:""}${it.company?`<div class="k">제조사</div><div>${escapeHtml(it.company)}</div>`:""}${it.importer?`<div class="k">수입사</div><div>${escapeHtml(it.importer)}</div>`:""}${it.country?`<div class="k">제조국</div><div>${escapeHtml(it.country)}</div>`:""}${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}</div>`; body.appendChild(div); }); showDebug(body, raw); }
 
-/* ---- 파서: 전파인증 (emsit.go.kr 응답 XML) ---- */
-// XML 태그값을 대소문자 무시하고 추출 (스펙 표기와 실제 응답 태그 케이스가 다름)
-function xmlText(doc, tag){
-  const els = doc.getElementsByTagName("*");
-  for(const el of els){
-    if(el.localName && el.localName.toLowerCase() === tag.toLowerCase()) return (el.textContent||"").trim();
-  }
-  return "";
-}
-function parseRraStatus(xml){
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  return { resultCode: xmlText(doc,"resultCode"), resultMsg: xmlText(doc,"resultMsg"), authYn: xmlText(doc,"authYn") };
-}
-function parseRraInfo(xml){
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  const code = xmlText(doc,"resultCode");
-  if(code && code !== "0000") return { found:false, resultCode:code, resultMsg:xmlText(doc,"resultMsg") };
-  return {
-    found: true, resultCode: code || "0000", resultMsg: xmlText(doc,"resultMsg"),
-    certNo:     xmlText(doc,"mtlCefNo"),
-    basicModel: xmlText(doc,"matlBscMdlNm"),
-    derivModel: xmlText(doc,"matlDerivMdlNm"),
-    name:       xmlText(doc,"mtlNm"),
-    company:    xmlText(doc,"bsmNm"),
-    maker:      xmlText(doc,"matlMfrNm"),
-    country:    xmlText(doc,"dttlInfCdNm"),
-    date:       xmlText(doc,"cvaPcsYmd"),
-    etc:        xmlText(doc,"matlEtcMtr"),
-  };
-}
+function xmlText(doc, tag){ const els=doc.getElementsByTagName("*"); for(const el of els){ if(el.localName && el.localName.toLowerCase()===tag.toLowerCase()) return (el.textContent||"").trim(); } return ""; }
+function parseRraStatus(xml){ const doc=new DOMParser().parseFromString(xml,"application/xml"); return {resultCode:xmlText(doc,"resultCode"),resultMsg:xmlText(doc,"resultMsg"),authYn:xmlText(doc,"authYn")}; }
+function parseRraInfo(xml){ const doc=new DOMParser().parseFromString(xml,"application/xml"); const code=xmlText(doc,"resultCode"); if(code && code!=="0000") return {found:false,resultCode:code,resultMsg:xmlText(doc,"resultMsg")}; return {found:true,resultCode:code||"0000",resultMsg:xmlText(doc,"resultMsg"),certNo:xmlText(doc,"mtlCefNo"),basicModel:xmlText(doc,"matlBscMdlNm"),derivModel:xmlText(doc,"matlDerivMdlNm"),name:xmlText(doc,"mtlNm"),company:xmlText(doc,"bsmNm"),maker:xmlText(doc,"matlMfrNm"),country:xmlText(doc,"dttlInfCdNm"),date:xmlText(doc,"cvaPcsYmd"),etc:xmlText(doc,"matlEtcMtr")}; }
 
-/* ---- 렌더링 ---- */
-function setBadge(which, state, label){
-  const b = F("badge-"+which);
-  b.className = "badge "+(state||"");
-  b.textContent = label;
-}
-function renderSafety(items, rawText){
-  const body = F("body-safety");
-  body.innerHTML = "";
-  if(!items.length){
-    body.innerHTML = '<span class="muted">검색 결과가 없습니다. 모델명/검색구분/AuthKey 를 확인하세요.</span>';
-  }else{
-    items.slice(0,30).forEach(it=>{
-      const div = document.createElement("div");
-      div.className = "result-item";
-      div.innerHTML =
-        `<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}</div>
-         <div class="kv">
-           ${it.status?`<div class="k">인증상태</div><div>${escapeHtml(it.status)}</div>`:""}
-           ${it.model?`<div class="k">모델명</div><div>${escapeHtml(it.model)}</div>`:""}
-           ${it.name?`<div class="k">제품명</div><div>${escapeHtml(it.name)}</div>`:""}
-           ${it.div?`<div class="k">인증구분</div><div>${escapeHtml(it.div)}</div>`:""}
-           ${it.company?`<div class="k">제조사</div><div>${escapeHtml(it.company)}</div>`:""}
-           ${it.importer?`<div class="k">수입사</div><div>${escapeHtml(it.importer)}</div>`:""}
-           ${it.country?`<div class="k">제조국</div><div>${escapeHtml(it.country)}</div>`:""}
-           ${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}
-         </div>`;
-      body.appendChild(div);
-    });
-    if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
-  }
-  if(F("show-debug").checked && rawText!=null){
-    const pre = document.createElement("pre");
-    pre.className="debug";
-    pre.textContent = rawText.slice(0,8000);
-    body.appendChild(pre);
-  }
-}
-function renderError(which, err){
-  F("body-"+which).innerHTML = `<div class="err-text">⚠️ ${escapeHtml(err.message||String(err))}</div>`;
-}
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-/* ---- 조회 동작 ---- */
-async function queryRra(input){
-  const mode = (document.querySelector('input[name=rraMode]:checked')||{}).value || "db";
-  if(mode === "db")   return queryRraDb(input);
-  if(mode === "live") return queryRraLive(input);
-  return queryRraByCert(input);
-}
-
-/* ---- 전파인증: 로컬 DB(rra_db.json) 모델명 검색 ---- */
 let RRA_DB = null;
-async function loadRraDb(){
-  if(RRA_DB) return RRA_DB;
-  const res = await fetch(cfg.dbUrl, { cache:"force-cache" });
-  if(!res.ok) throw new Error("로컬 DB('"+cfg.dbUrl+"')를 불러오지 못했습니다 (HTTP "+res.status+").\nindex.html 과 같은 위치에 rra_db.json 이 있어야 하며, file:// 직접 열기는 차단될 수 있으니 server.py 또는 GitHub Pages 로 여세요.");
-  RRA_DB = await res.json();
-  return RRA_DB;
-}
-async function queryRraDb(model){
-  setBadge("rra","run","검색중…");
-  try{
-    const q = (model||"").trim().toLowerCase();
-    if(!q) throw new Error("모델명을 입력하세요.");
-    const db = await loadRraDb();
-    const hits = db.records.filter(r => r._s.includes(q));
-    hits.sort((a,b)=> dbMatchScore(b,q) - dbMatchScore(a,q));
-    setBadge("rra", hits.length?"ok":"err", hits.length?`${hits.length}건`:"없음");
-    renderRraDb(hits, q, db);
-  }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
-}
-function dbMatchScore(r, q){
-  const m = (r.model||"").toLowerCase();
-  if(m === q) return 3;
-  if((r.derivModels||[]).some(d => d.toLowerCase() === q)) return 2;
-  if(m.startsWith(q)) return 1;
-  return 0;
-}
-function renderRraDb(hits, q, db){
-  const body = F("body-rra"); body.innerHTML = "";
-  if(!hits.length){
-    body.innerHTML = `<span class="muted">'${escapeHtml(q)}' 모델의 인증 내역이 로컬 DB(${db.count}건)에 없습니다.</span>`;
-    return;
-  }
-  hits.slice(0,30).forEach(r=>{
-    const detail = r.certNo ? cfg.rraDetail.replace("{certNo}", encodeURIComponent(r.certNo)) : "";
-    const matched = (r.derivModels||[]).filter(d => d.toLowerCase().includes(q));
-    const div = document.createElement("div"); div.className = "result-item";
-    div.innerHTML =
-      `<div class="certno">${escapeHtml(r.certNo||"-")}${detail?` <a href="${detail}" target="_blank" rel="noopener">[상세]</a>`:""}</div>
-       <div class="kv">
-         <div class="k">인증상태</div><div>${escapeHtml(r.status||"")}</div>
-         <div class="k">모델명</div><div>${escapeHtml(r.model||"")}</div>
-         ${matched.length?`<div class="k">파생(일치)</div><div>${matched.map(escapeHtml).join(", ")}</div>`:""}
-         ${(r.derivModels||[]).length?`<div class="k">파생모델</div><div>${escapeHtml(r.derivModels.join(", "))}</div>`:""}
-         ${r.equipment?`<div class="k">기자재명칭</div><div>${escapeHtml(r.equipment)}</div>`:""}
-         ${r.company?`<div class="k">상호</div><div>${escapeHtml(r.company)}</div>`:""}
-         ${r.maker?`<div class="k">제조자</div><div>${escapeHtml(r.maker)}</div>`:""}
-         ${r.country?`<div class="k">제조국</div><div>${escapeHtml(r.country)}</div>`:""}
-         ${r.date?`<div class="k">인증연월일</div><div>${escapeHtml(r.date)}</div>`:""}
-       </div>`;
-    body.appendChild(div);
-  });
-  if(hits.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${hits.length}건). 모델명을 더 구체적으로 입력하세요.</div>`);
-}
-async function queryRraByCert(certNo){
-  setBadge("rra","run","조회중…");
-  try{
-    const statusXml = await proxiedFetch(buildRraUrl(cfg.rraStatusUrl, certNo)); // 인증여부
-    const st = parseRraStatus(statusXml);
-    const infoXml = await proxiedFetch(buildRraUrl(cfg.rraInfoUrl, certNo));     // 상세정보
-    const info = parseRraInfo(infoXml);
-    renderRra(certNo, st, info, statusXml + "\n\n----\n\n" + infoXml);
-  }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
-}
-function renderRra(certNo, st, info, rawText){
-  const body = F("body-rra");
-  const certified = (st.authYn||"").toUpperCase()==="Y" || info.found;
-  setBadge("rra", certified?"ok":"err", certified?"인증 Y":"인증 N");
-  if(!certified){
-    let msg = "해당 인증번호의 인증내역이 없습니다 (미인증).";
-    if(st.resultCode==="0098" || info.resultCode==="0098") msg = "요청 파라미터(인증번호)가 누락되었습니다.";
-    // 입력이 인증번호 형태가 아니면(모델명으로 보이면) 안내
-    if(!/-/.test(certNo)) msg += "\n\n※ 전파인증 무료 API는 모델명이 아니라 '인증번호'로 조회합니다 (예: KCC-REM-MJT-MJT). 모델명으로 찾으려면 RRA 검색페이지를 이용하세요: https://www.rra.go.kr/ko/license/A_c_search.do";
-    body.innerHTML = `<div class="err-text">⚠️ ${escapeHtml(msg)}</div>`;
-  }else{
-    const detail = cfg.rraDetail.replace("{certNo}", encodeURIComponent(info.certNo || certNo));
-    body.innerHTML =
-      `<div class="result-item">
-         <div class="certno">${escapeHtml(info.certNo || certNo)} <a href="${detail}" target="_blank" rel="noopener">[상세]</a></div>
-         <div class="kv">
-           <div class="k">인증여부</div><div>✅ 인증됨 (Y)</div>
-           ${info.basicModel?`<div class="k">기본모델</div><div>${escapeHtml(info.basicModel)}</div>`:""}
-           ${info.derivModel?`<div class="k">파생모델</div><div>${escapeHtml(info.derivModel)}</div>`:""}
-           ${info.name?`<div class="k">기자재명칭</div><div>${escapeHtml(info.name)}</div>`:""}
-           ${info.company?`<div class="k">업체명</div><div>${escapeHtml(info.company)}</div>`:""}
-           ${info.maker?`<div class="k">제조자</div><div>${escapeHtml(info.maker)}</div>`:""}
-           ${info.country?`<div class="k">제조국</div><div>${escapeHtml(info.country)}</div>`:""}
-           ${info.date?`<div class="k">인증일자</div><div>${escapeHtml(info.date)}</div>`:""}
-           ${info.etc?`<div class="k">기타사항</div><div>${escapeHtml(info.etc)}</div>`:""}
-         </div>
-       </div>`;
-  }
-  if(F("show-debug").checked && rawText!=null){
-    const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=rawText.slice(0,8000); body.appendChild(pre);
-  }
-}
-/* ---- 전파인증: 모델명 → 인증번호 검색 (data.go.kr 적합성평가 DB정보 3034183) ---- */
-// 인증번호 패턴 (R-R-SEC-..., R-C-..., MSIP-..., KCC-... 등)
-const RRA_CERT_RE = /\b(?:R-[A-Z]{1,4}-[A-Za-z0-9]+-[A-Za-z0-9.\-]+|MSIP-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+|KCC-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+)\b/;
+async function loadRraDb(){ if(RRA_DB) return RRA_DB; const res=await fetch(cfg.dbUrl,{cache:"force-cache"}); if(!res.ok) throw new Error("로컬 DB('"+cfg.dbUrl+"')를 불러오지 못했습니다 (HTTP "+res.status+").\nindex.html과 같은 위치에 rra_db.json이 있어야 합니다."); RRA_DB=await res.json(); return RRA_DB; }
+async function queryRraDb(model){ setBadge("rra","run","검색중…"); try{ const q=(model||"").trim().toLowerCase(); if(!q) throw new Error("모델명을 입력하세요."); const db=await loadRraDb(); const records=Array.isArray(db.records)?db.records:[]; const hits=records.filter(r=>String(r._s||[r.model,(r.derivModels||[]).join(" "),r.certNo].join(" ")).toLowerCase().includes(q)); hits.sort((a,b)=>dbMatchScore(b,q)-dbMatchScore(a,q)); setBadge("rra",hits.length?"ok":"err",hits.length?`${hits.length}건`:"없음"); renderRraDb(hits,q,db); }catch(e){ setBadge("rra","err","오류"); renderError("rra",e); } }
+function dbMatchScore(r,q){ const m=String(r.model||"").toLowerCase(); if(m===q) return 3; if((r.derivModels||[]).some(d=>String(d).toLowerCase()===q)) return 2; if(m.startsWith(q)) return 1; return 0; }
+function renderRraDb(hits,q,db){ const body=F("body-rra"); body.innerHTML=""; if(!hits.length){ body.innerHTML=`<span class="muted">'${escapeHtml(q)}' 모델의 인증 내역이 로컬 DB(${escapeHtml(db.count||0)}건)에 없습니다.</span>`; return; } hits.slice(0,30).forEach(r=>{ const detail=r.certNo?cfg.rraDetail.replace("{certNo}",encodeURIComponent(r.certNo)):""; const matched=(r.derivModels||[]).filter(d=>String(d).toLowerCase().includes(q)); const div=document.createElement("div"); div.className="result-item"; div.innerHTML=`<div class="certno">${escapeHtml(r.certNo||"-")}${detail?` <a href="${detail}" target="_blank" rel="noopener">[상세]</a>`:""}</div><div class="kv"><div class="k">인증상태</div><div>${escapeHtml(r.status||"")}</div><div class="k">모델명</div><div>${escapeHtml(r.model||"")}</div>${matched.length?`<div class="k">파생(일치)</div><div>${matched.map(escapeHtml).join(", ")}</div>`:""}${(r.derivModels||[]).length?`<div class="k">파생모델</div><div>${escapeHtml((r.derivModels||[]).join(", "))}</div>`:""}${r.equipment?`<div class="k">기자재명칭</div><div>${escapeHtml(r.equipment)}</div>`:""}${r.company?`<div class="k">상호</div><div>${escapeHtml(r.company)}</div>`:""}${r.maker?`<div class="k">제조자</div><div>${escapeHtml(r.maker)}</div>`:""}${r.country?`<div class="k">제조국</div><div>${escapeHtml(r.country)}</div>`:""}${r.date?`<div class="k">인증연월일</div><div>${escapeHtml(r.date)}</div>`:""}</div>`; body.appendChild(div); }); if(hits.length>30) body.insertAdjacentHTML("beforeend",`<div class="hint">상위 30건 표시 (총 ${hits.length}건). 모델명을 더 구체적으로 입력하세요.</div>`); }
+async function queryRraByCert(certNo){ setBadge("rra","run","조회중…"); try{ const statusXml=await proxiedFetch(buildRraUrl(cfg.rraStatusUrl,certNo)); const st=parseRraStatus(statusXml); const infoXml=await proxiedFetch(buildRraUrl(cfg.rraInfoUrl,certNo)); const info=parseRraInfo(infoXml); renderRra(certNo,st,info,statusXml+"\n\n----\n\n"+infoXml); }catch(e){ setBadge("rra","err","오류"); renderError("rra",e); } }
+function renderRra(certNo,st,info,raw){ const body=F("body-rra"); body.innerHTML=""; const certified=(st.authYn||"").toUpperCase()==="Y"||info.found; setBadge("rra",certified?"ok":"err",certified?"인증 Y":"인증 N"); if(!certified){ let msg="해당 인증번호의 인증내역이 없습니다 (미인증)."; if(st.resultCode==="0098"||info.resultCode==="0098") msg="요청 파라미터(인증번호)가 누락되었습니다."; if(!/-/.test(certNo)) msg += "\n\n※ 전파인증 무료 API는 모델명이 아니라 인증번호로 조회합니다. 모델명 검색은 '모델명·로컬DB'를 사용하세요."; body.innerHTML=`<div class="err-text">⚠️ ${escapeHtml(msg)}</div>`; }else{ const detail=cfg.rraDetail.replace("{certNo}",encodeURIComponent(info.certNo||certNo)); body.innerHTML=`<div class="result-item"><div class="certno">${escapeHtml(info.certNo||certNo)} <a href="${detail}" target="_blank" rel="noopener">[상세]</a></div><div class="kv"><div class="k">인증여부</div><div>인증됨 (Y)</div>${info.basicModel?`<div class="k">기본모델</div><div>${escapeHtml(info.basicModel)}</div>`:""}${info.derivModel?`<div class="k">파생모델</div><div>${escapeHtml(info.derivModel)}</div>`:""}${info.name?`<div class="k">기자재명칭</div><div>${escapeHtml(info.name)}</div>`:""}${info.company?`<div class="k">업체명</div><div>${escapeHtml(info.company)}</div>`:""}${info.maker?`<div class="k">제조자</div><div>${escapeHtml(info.maker)}</div>`:""}${info.country?`<div class="k">제조국</div><div>${escapeHtml(info.country)}</div>`:""}${info.date?`<div class="k">인증일자</div><div>${escapeHtml(info.date)}</div>`:""}${info.etc?`<div class="k">기타사항</div><div>${escapeHtml(info.etc)}</div>`:""}</div></div>`; } showDebug(body,raw); }
+
+const RRA_CERT_RE=/\b(?:R-[A-Z]{1,4}-[A-Za-z0-9]+-[A-Za-z0-9.\-]+|MSIP-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+|KCC-[A-Za-z]{2,4}-[A-Za-z0-9.\-]+)\b/;
 function todayYmd(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return ""+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate()); }
-function buildRraLiveBody(model){
-  const params = {
-    category:"", fromdate:(cfg.rraLiveFrom||"20000101"), todate:(cfg.rraLiveTo||todayYmd()),
-    firm:"", equip:"", model_no:model, app_no:"", maker:"", nation:""
-  };
-  return new URLSearchParams(params).toString();
-}
-async function queryRraLive(model){
-  setBadge("rra","run","조회중…");
-  try{
-    if(cfg.mode !== "local") throw new Error("실시간조회는 RRA 사이트에 직접 POST 하므로 '로컬 프록시' 모드가 필요합니다.\n설정에서 연결 방식을 '로컬 프록시'로 바꾸고 server.py 를 실행하세요.");
-    const html = await proxiedFetch(cfg.rraLiveUrl, null, buildRraLiveBody(model));
-    const items = parseRraLive(html, model);
-    setBadge("rra", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
-    renderRraLive(items, html);
-  }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
-}
-// 결과 HTML 표에서 인증번호가 들어있는 행을 추출 (열 구조 변화에 견디도록 셀 전체 보존)
-function parseRraLive(html, model){
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const out = [];
-  doc.querySelectorAll("table tr").forEach(tr=>{
-    const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
-    if(!cells.length) return;
-    const m = cells.join("  ").match(RRA_CERT_RE);
-    if(!m) return;
-    const certNo = m[0];
-    out.push({ certNo, cells, detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)) });
-  });
-  // 모델명이 셀에 포함된 행 우선
-  if(model){ const q=model.toUpperCase(); out.sort((a,b)=> (b.cells.join(" ").toUpperCase().includes(q)?1:0)-(a.cells.join(" ").toUpperCase().includes(q)?1:0)); }
-  return out;
-}
-function renderRraLive(items, rawText){
-  const body=F("body-rra"); body.innerHTML="";
-  if(!items.length){
-    body.innerHTML='<span class="muted">결과가 없습니다. 기간(인증일자)·모델명을 확인하세요. 표 구조가 다르면 디버그로 원본을 확인해 주세요.</span>';
-  }else items.slice(0,30).forEach(it=>{
-    // 인증번호 셀을 제외한 나머지 셀들을 정보로 표시
-    const others = it.cells.filter(c=>c && c!==it.certNo);
-    const div=document.createElement("div"); div.className="result-item";
-    div.innerHTML =
-      `<div class="certno">${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a></div>
-       <div class="kv"><div class="k">정보</div><div>${escapeHtml(others.join(" · "))}</div></div>`;
-    body.appendChild(div);
-  });
-  if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
-  if(F("show-debug").checked && rawText!=null){ const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=rawText.slice(0,8000); body.appendChild(pre); }
-}
+function buildRraLiveBody(model){ return new URLSearchParams({category:"",fromdate:(cfg.rraLiveFrom||"20000101"),todate:(cfg.rraLiveTo||todayYmd()),firm:"",equip:"",model_no:model,app_no:"",maker:"",nation:""}).toString(); }
+async function queryRraLive(model){ setBadge("rra","run","조회중…"); try{ if(cfg.mode!=="local") throw new Error("실시간조회는 RRA 사이트에 직접 POST 하므로 로컬/전용 프록시 모드가 필요합니다. GitHub Pages 단독 모드에서는 사용할 수 없습니다."); const html=await proxiedFetch(cfg.rraLiveUrl,null,buildRraLiveBody(model)); const items=parseRraLive(html,model); setBadge("rra",items.length?"ok":"err",items.length?`${items.length}건`:"없음"); renderRraLive(items,html); }catch(e){ setBadge("rra","err","오류"); renderError("rra",e); } }
+function parseRraLive(html,model){ const doc=new DOMParser().parseFromString(html,"text/html"); const out=[]; doc.querySelectorAll("table tr").forEach(tr=>{ const cells=Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim()); if(!cells.length) return; const m=cells.join(" | ").match(RRA_CERT_RE); if(!m) return; const certNo=m[0]; out.push({certNo,cells,detail:cfg.rraDetail.replace("{certNo}",encodeURIComponent(certNo))}); }); if(model){ const q=model.toUpperCase(); out.sort((a,b)=>(b.cells.join(" ").toUpperCase().includes(q)?1:0)-(a.cells.join(" ").toUpperCase().includes(q)?1:0)); } return out; }
+function renderRraLive(items,raw){ const body=F("body-rra"); body.innerHTML=""; if(!items.length){ body.innerHTML='<span class="muted">결과가 없습니다. 기간(인증일자)·모델명을 확인하세요.</span>'; }else items.slice(0,30).forEach(it=>{ const others=it.cells.filter(c=>c&&c!==it.certNo); const div=document.createElement("div"); div.className="result-item"; div.innerHTML=`<div class="certno">${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a></div><div class="kv"><div class="k">정보</div><div>${escapeHtml(others.join(" · "))}</div></div>`; body.appendChild(div); }); showDebug(body,raw); }
 
-async function querySafety(model){
-  setBadge("safety","run","조회중…");
-  try{
-    if(!cfg.safetyKey) throw new Error("설정에서 '안전인증 AuthKey'를 입력하세요. (SafetyKorea 서비스 ID)");
-    // AuthKey 는 HTTP 헤더로 전달 → 로컬 프록시(server.py)가 그대로 중계.
-    if(cfg.mode !== "local") throw new Error("안전인증은 AuthKey 헤더 인증이라 '로컬 프록시' 모드가 필요합니다.\n(공개 CORS 프록시는 커스텀 헤더를 전달하지 못합니다.) 설정에서 연결 방식을 '로컬 프록시'로 바꾸고 server.py 를 실행하세요.");
-    const url = buildSafetyUrl(model);
-    const text = await proxiedFetch(url, { "AuthKey": cfg.safetyKey });
-    const items = parseSafety(text);
-    setBadge("safety", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
-    renderSafety(items, text);
-  }catch(e){ setBadge("safety","err","오류"); renderError("safety", e); }
-}
-function getModel(){
-  const m = F("model").value.trim();
-  if(!m){ alert("모델명을 입력하세요."); return null; }
-  return m;
-}
+async function querySafety(model){ setBadge("safety","run","조회중…"); try{ if(!cfg.safetyKey) throw new Error("설정에서 '안전인증 AuthKey'를 입력하세요. (SafetyKorea 서비스 ID)"); if(cfg.mode!=="local") throw new Error("안전인증은 AuthKey 헤더 인증이라 GitHub Pages 단독 실행이 불가합니다. server.py를 실행하고 로컬/전용 프록시 모드로 사용하세요."); const text=await proxiedFetch(buildSafetyUrl(model),{"AuthKey":cfg.safetyKey}); const items=parseSafety(text); setBadge("safety",items.length?"ok":"err",items.length?`${items.length}건`:"없음"); renderSafety(items,text); }catch(e){ setBadge("safety","err","오류"); renderError("safety",e); } }
+function queryRra(input){ const mode=(document.querySelector('input[name=rraMode]:checked')||{}).value||"db"; if(mode==="db") return queryRraDb(input); if(mode==="live") return queryRraLive(input); return queryRraByCert(input); }
+function getModel(){ const m=F("model").value.trim(); if(!m){ alert("모델명을 입력하세요."); return null; } return m; }
 
-/* ---- 이벤트 ---- */
-F("btn-both").onclick   = ()=>{ const m=getModel(); if(m){ queryRra(m); querySafety(m); } };
-F("btn-rra").onclick    = ()=>{ const m=getModel(); if(m) queryRra(m); };
-F("btn-safety").onclick = ()=>{ const m=getModel(); if(m) querySafety(m); };
-F("model").addEventListener("keydown", e=>{ if(e.key==="Enter") F("btn-both").click(); });
-document.querySelectorAll('input[name=rraMode]').forEach(r=>r.addEventListener("change", ()=>{
-  const m=(document.querySelector('input[name=rraMode]:checked')||{}).value;
-  F("body-rra").innerHTML =
-    m==="db"   ? '<span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span>' :
-    m==="live" ? '<span class="muted">모델명을 입력하고 조회하세요. (RRA 사이트 실시간 검색 · 로컬 프록시 필요)</span>' :
-                 '<span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span>';
-}));
-
-F("cfg-save").onclick = ()=>{ readSettings(); saveConfig(); updateModeNote(); F("cfg-status").textContent="✅ 저장되었습니다."; };
-F("cfg-reset").onclick = ()=>{ if(confirm("기본값으로 복원할까요? (저장된 키 포함 초기화)")){ localStorage.removeItem(LS_KEY); cfg=loadConfig(); fillSettings(); F("cfg-status").textContent="기본값으로 복원했습니다."; } };
-F("cfg-mode").onchange = ()=>{ cfg.mode=F("cfg-mode").value; updateModeNote(); };
-F("cfg-test").onclick = async ()=>{
-  readSettings();
-  F("cfg-status").textContent="연결 테스트 중…";
-  try{
-    const t = await proxiedFetch("https://www.rra.go.kr/ko/main.do");
-    F("cfg-status").textContent = "✅ 프록시 연결 정상 (응답 "+t.length+" bytes)";
-  }catch(e){ F("cfg-status").textContent = "❌ 연결 실패: "+(e.message||e); }
-};
+F("btn-both").onclick=()=>{ const m=getModel(); if(m){ queryRra(m); querySafety(m); } };
+F("btn-rra").onclick=()=>{ const m=getModel(); if(m) queryRra(m); };
+F("btn-safety").onclick=()=>{ const m=getModel(); if(m) querySafety(m); };
+F("model").addEventListener("keydown",e=>{ if(e.key==="Enter") F("btn-both").click(); });
+document.querySelectorAll('input[name=rraMode]').forEach(r=>r.addEventListener("change",()=>{ const m=(document.querySelector('input[name=rraMode]:checked')||{}).value; F("body-rra").innerHTML = m==="db" ? '<span class="muted">모델명/파생모델명을 입력하고 조회하세요. (rra_db.json · GitHub Pages 가능)</span>' : m==="live" ? '<span class="muted">모델명을 입력하고 조회하세요. (RRA 실시간 검색 · 로컬/전용 프록시 필요)</span>' : '<span class="muted">전파 인증번호를 입력하고 조회하세요. GitHub Pages에서는 공개 CORS 프록시를 경유합니다.</span>'; }));
+F("cfg-save").onclick=()=>{ readSettings(); saveConfig(); updateModeNote(); F("cfg-status").textContent="저장되었습니다."; };
+F("cfg-reset").onclick=()=>{ if(confirm("기본값으로 복원할까요? (저장된 키 포함 초기화)")){ localStorage.removeItem(LS_KEY); cfg=loadConfig(); fillSettings(); F("cfg-status").textContent="기본값으로 복원했습니다."; } };
+F("cfg-mode").onchange=()=>{ cfg.mode=F("cfg-mode").value; updateModeNote(); };
+F("cfg-test").onclick=async()=>{ readSettings(); F("cfg-status").textContent="연결 테스트 중…"; try{ const t=await proxiedFetch("https://www.rra.go.kr/ko/main.do"); F("cfg-status").textContent="프록시 연결 정상 (응답 "+t.length+" bytes)"; }catch(e){ F("cfg-status").textContent="연결 실패: "+(e.message||e); } };
 
 fillSettings();
 </script>
