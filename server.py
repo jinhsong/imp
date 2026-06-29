@@ -53,9 +53,10 @@ def _open(req, timeout=30):
     """검증 SSL 우선, 인증서 검증 실패 시에만 비검증으로 재시도(공공 사이트 인증서 이슈 대비)."""
     try:
         return _OPENER_V.open(req, timeout=timeout)
-    except urllib.error.URLError as e:
-        if isinstance(getattr(e, "reason", None), ssl.SSLError):
-            sys.stderr.write("[proxy] SSL 검증 실패 → 비검증 재시도\n")
+    except (ssl.SSLError, urllib.error.URLError) as e:
+        reason = getattr(e, "reason", None)
+        if isinstance(e, ssl.SSLError) or isinstance(reason, ssl.SSLError):
+            sys.stderr.write("[proxy] SSL 검증 실패 → 비검증으로 재시도\n")
             return _OPENER_N.open(req, timeout=timeout)
         raise
 
