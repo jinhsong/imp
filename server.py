@@ -57,6 +57,11 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/fetch":
             return self.handle_fetch(parsed)
+        if parsed.path == "/favicon.ico":
+            self.send_response(204)
+            self._cors()
+            self.end_headers()
+            return
         return self.handle_static(parsed)
 
     # ---- /fetch 중계 ----

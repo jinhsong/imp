@@ -64,7 +64,7 @@
 <body>
 <header>
   <h1>수입 모델 인증 확인</h1>
-  <div class="sub"><b>전파인증</b>은 인증번호(무료) 또는 모델명(data.go.kr 키)으로, <b>안전인증(KC)</b>은 모델명으로 조회합니다.</div>
+  <div class="sub"><b>전파인증</b>은 모델명(로컬 DB)·인증번호(무료 API)·모델명(data.go.kr 키)으로, <b>안전인증(KC)</b>은 모델명으로 조회합니다.</div>
 </header>
 
 <main>
@@ -80,10 +80,11 @@
       <h2>전파인증 (적합성평가) <span class="badge" id="badge-rra">대기</span></h2>
       <div class="rra-mode" style="padding:8px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)">
         조회 기준:
-        <label style="margin-left:6px"><input type="radio" name="rraMode" value="cert" checked style="width:auto" /> 인증번호 <span style="font-size:11px">(무료)</span></label>
-        <label style="margin-left:12px"><input type="radio" name="rraMode" value="model" style="width:auto" /> 모델명 <span style="font-size:11px">(data.go.kr 키 필요)</span></label>
+        <label style="margin-left:6px"><input type="radio" name="rraMode" value="db" checked style="width:auto" /> 모델명·로컬DB <span style="font-size:11px">(키 불필요)</span></label>
+        <label style="margin-left:12px"><input type="radio" name="rraMode" value="cert" style="width:auto" /> 인증번호 <span style="font-size:11px">(무료 API)</span></label>
+        <label style="margin-left:12px"><input type="radio" name="rraMode" value="model" style="width:auto" /> 모델명·API <span style="font-size:11px">(data.go.kr 키)</span></label>
       </div>
-      <div class="body" id="body-rra"><span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span></div>
+      <div class="body" id="body-rra"><span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span></div>
     </section>
     <section class="card" id="card-safety">
       <h2>안전인증 (KC) <span class="badge" id="badge-safety">대기</span></h2>
@@ -172,6 +173,11 @@
           <div class="hint">상세페이지 요청변수 표에서 기본/모델 검색 파라미터명 확인.</div>
         </div>
       </div>
+      <div class="field">
+        <label>전파인증 로컬 DB 파일 경로</label>
+        <input id="cfg-dbUrl" type="text" />
+        <div class="hint"><code>build_db.py</code> 로 만든 <code>rra_db.json</code>. index.html 과 같은 위치에 두면 됩니다.</div>
+      </div>
 
       <div class="toolbar">
         <button id="cfg-save" class="primary">저장</button>
@@ -202,6 +208,9 @@ const DEFAULTS = {
   localProxy: "/fetch",
   // 공개 CORS 프록시 ({url} = 대상 URL). allorigins 가 raw 본문을 그대로 반환.
   corsProxy: "https://api.allorigins.win/raw?url={url}",
+
+  // 전파인증 로컬 DB (build_db.py 로 생성한 rra_db.json, index.html 과 같은 위치)
+  dbUrl: "rra_db.json",
 
   // ── 안전인증 (data.go.kr: 제품 안전인증 및 리콜 정보, 데이터 15116894) ──
   safetyKey: "",
@@ -243,6 +252,7 @@ function fillSettings(){
   F("cfg-rraSearchKey").value = cfg.rraSearchKey;
   F("cfg-rraSearchUrl").value = cfg.rraSearchUrl;
   F("cfg-rraSearchModelParam").value = cfg.rraSearchModelParam;
+  F("cfg-dbUrl").value = cfg.dbUrl;
   updateModeNote();
 }
 function readSettings(){
@@ -258,6 +268,7 @@ function readSettings(){
   cfg.rraSearchKey = F("cfg-rraSearchKey").value.trim();
   cfg.rraSearchUrl = F("cfg-rraSearchUrl").value.trim();
   cfg.rraSearchModelParam = F("cfg-rraSearchModelParam").value.trim() || "mtlBscMdlNm";
+  cfg.dbUrl = F("cfg-dbUrl").value.trim() || "rra_db.json";
 }
 function updateModeNote(){
   const n = F("mode-note");
@@ -419,8 +430,66 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 
 /* ---- 조회 동작 ---- */
 async function queryRra(input){
-  const mode = (document.querySelector('input[name=rraMode]:checked')||{}).value || "cert";
-  return mode === "model" ? queryRraByModel(input) : queryRraByCert(input);
+  const mode = (document.querySelector('input[name=rraMode]:checked')||{}).value || "db";
+  if(mode === "db")    return queryRraDb(input);
+  if(mode === "model") return queryRraByModel(input);
+  return queryRraByCert(input);
+}
+
+/* ---- 전파인증: 로컬 DB(rra_db.json) 모델명 검색 ---- */
+let RRA_DB = null;
+async function loadRraDb(){
+  if(RRA_DB) return RRA_DB;
+  const res = await fetch(cfg.dbUrl, { cache:"force-cache" });
+  if(!res.ok) throw new Error("로컬 DB('"+cfg.dbUrl+"')를 불러오지 못했습니다 (HTTP "+res.status+").\nindex.html 과 같은 위치에 rra_db.json 이 있어야 하며, file:// 직접 열기는 차단될 수 있으니 server.py 또는 GitHub Pages 로 여세요.");
+  RRA_DB = await res.json();
+  return RRA_DB;
+}
+async function queryRraDb(model){
+  setBadge("rra","run","검색중…");
+  try{
+    const q = (model||"").trim().toLowerCase();
+    if(!q) throw new Error("모델명을 입력하세요.");
+    const db = await loadRraDb();
+    const hits = db.records.filter(r => r._s.includes(q));
+    hits.sort((a,b)=> dbMatchScore(b,q) - dbMatchScore(a,q));
+    setBadge("rra", hits.length?"ok":"err", hits.length?`${hits.length}건`:"없음");
+    renderRraDb(hits, q, db);
+  }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
+}
+function dbMatchScore(r, q){
+  const m = (r.model||"").toLowerCase();
+  if(m === q) return 3;
+  if((r.derivModels||[]).some(d => d.toLowerCase() === q)) return 2;
+  if(m.startsWith(q)) return 1;
+  return 0;
+}
+function renderRraDb(hits, q, db){
+  const body = F("body-rra"); body.innerHTML = "";
+  if(!hits.length){
+    body.innerHTML = `<span class="muted">'${escapeHtml(q)}' 모델의 인증 내역이 로컬 DB(${db.count}건)에 없습니다.</span>`;
+    return;
+  }
+  hits.slice(0,30).forEach(r=>{
+    const detail = r.certNo ? cfg.rraDetail.replace("{certNo}", encodeURIComponent(r.certNo)) : "";
+    const matched = (r.derivModels||[]).filter(d => d.toLowerCase().includes(q));
+    const div = document.createElement("div"); div.className = "result-item";
+    div.innerHTML =
+      `<div class="certno">${escapeHtml(r.certNo||"-")}${detail?` <a href="${detail}" target="_blank" rel="noopener">[상세]</a>`:""}</div>
+       <div class="kv">
+         <div class="k">인증상태</div><div>${escapeHtml(r.status||"")}</div>
+         <div class="k">모델명</div><div>${escapeHtml(r.model||"")}</div>
+         ${matched.length?`<div class="k">파생(일치)</div><div>${matched.map(escapeHtml).join(", ")}</div>`:""}
+         ${(r.derivModels||[]).length?`<div class="k">파생모델</div><div>${escapeHtml(r.derivModels.join(", "))}</div>`:""}
+         ${r.equipment?`<div class="k">기자재명칭</div><div>${escapeHtml(r.equipment)}</div>`:""}
+         ${r.company?`<div class="k">상호</div><div>${escapeHtml(r.company)}</div>`:""}
+         ${r.maker?`<div class="k">제조자</div><div>${escapeHtml(r.maker)}</div>`:""}
+         ${r.country?`<div class="k">제조국</div><div>${escapeHtml(r.country)}</div>`:""}
+         ${r.date?`<div class="k">인증연월일</div><div>${escapeHtml(r.date)}</div>`:""}
+       </div>`;
+    body.appendChild(div);
+  });
+  if(hits.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${hits.length}건). 모델명을 더 구체적으로 입력하세요.</div>`);
 }
 async function queryRraByCert(certNo){
   setBadge("rra","run","조회중…");
@@ -559,9 +628,10 @@ F("btn-safety").onclick = ()=>{ const m=getModel(); if(m) querySafety(m); };
 F("model").addEventListener("keydown", e=>{ if(e.key==="Enter") F("btn-both").click(); });
 document.querySelectorAll('input[name=rraMode]').forEach(r=>r.addEventListener("change", ()=>{
   const m=(document.querySelector('input[name=rraMode]:checked')||{}).value;
-  F("body-rra").innerHTML = (m==="model")
-    ? '<span class="muted">모델명을 입력하고 조회하세요. (설정에 적합성평가 서비스키 필요)</span>'
-    : '<span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span>';
+  F("body-rra").innerHTML =
+    m==="db"    ? '<span class="muted">모델명/파생모델명을 입력하고 조회하세요. (로컬 DB · 키 불필요)</span>' :
+    m==="model" ? '<span class="muted">모델명을 입력하고 조회하세요. (설정에 적합성평가 서비스키 필요)</span>' :
+                  '<span class="muted">전파 인증번호(예: KCC-REM-MJT-MJT)를 입력하고 조회하세요. 키 불필요.</span>';
 }));
 
 F("cfg-save").onclick = ()=>{ readSettings(); saveConfig(); updateModeNote(); F("cfg-status").textContent="✅ 저장되었습니다."; };
