@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>전파인증 Proxyless 테스트</title>
+<style>
+  :root{--bg:#0f1720;--panel:#16212e;--panel2:#1c2a3a;--line:#2a3a4d;--txt:#e6edf3;--muted:#9fb0c0;--accent:#4ea1ff;--ok:#3ecf8e;--err:#ff6b6b;--warn:#ffcf5c}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;line-height:1.5}
+  header{padding:22px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#16212e,#0f1720)}h1{margin:0;font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:6px}
+  main{max-width:980px;margin:0 auto;padding:20px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,button{font-size:15px;font-family:inherit}input{flex:1;min-width:240px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:13px 14px}input:focus{outline:none;border-color:var(--accent)}
+  button{cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#06121f;border-radius:8px;padding:12px 16px;font-weight:700}button.secondary{background:var(--panel2);border-color:var(--line);color:var(--txt)}button:hover{filter:brightness(1.08)}
+  .note{font-size:12px;color:var(--warn);background:rgba(255,207,92,.08);border:1px solid rgba(255,207,92,.3);border-radius:10px;padding:12px 14px;margin:14px 0}.note.ok{color:var(--ok);background:rgba(62,207,142,.08);border-color:rgba(62,207,142,.35)}.note.err{color:var(--err);background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.35)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.chip{border:1px solid var(--line);background:var(--panel2);border-radius:20px;color:var(--muted);font-size:12px;padding:4px 9px}
+  .result{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.result-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
+  .item{padding:14px 16px;border-bottom:1px dashed var(--line)}.item:last-child{border-bottom:none}.cert{font-size:18px;font-weight:800;color:var(--ok);word-break:break-all}.kv{display:grid;grid-template-columns:96px 1fr;gap:5px 10px;font-size:13px;margin-top:9px}.k{color:var(--muted)}a{color:var(--accent)}.empty{padding:24px 16px;color:var(--muted)}
+  @media(max-width:640px){.kv{grid-template-columns:82px 1fr}.result-head{display:block}.result-head div+div{margin-top:4px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>전파인증 Proxyless 테스트</h1>
+  <div class="sub">GitHub Pages에서 <b>프록시 없이</b> <code>rra_db.json</code> 정적 파일만 읽어 모델명/파생모델명/인증번호를 검색합니다.</div>
+</header>
+<main>
+  <div class="note" id="status">DB 로딩 중...</div>
+  <div class="row">
+    <input id="q" type="text" placeholder="모델명, 파생모델명, 인증번호, 제품명 입력 (예: COVE X1 / LS32HG350EKXKR / R-R-SEC-COVEX1)" autofocus />
+    <button id="search">검색</button>
+    <button class="secondary" id="sample">샘플</button>
+  </div>
+  <div class="toolbar">
+    <span class="chip" id="db-count">DB: -</span>
+    <span class="chip">API 키 없음</span>
+    <span class="chip">프록시 없음</span>
+    <span class="chip">외부 API 호출 없음</span>
+  </div>
+  <section class="result">
+    <div class="result-head"><div id="summary">검색어를 입력하세요.</div><div id="limit-note">상위 50건 표시</div></div>
+    <div id="out"><div class="empty">모델명 또는 인증번호를 입력하면 결과가 표시됩니다.</div></div>
+  </section>
+</main>
+<script>
+"use strict";
+const DB_URL = "rra_db.json";
+const DETAIL_URL = "https://www.rra.go.kr/ko/license/A_b_popup_keyno.do?key_no={certNo}";
+let DB = null;
+const $ = id => document.getElementById(id);
+function esc(s){return String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function text(v){return String(v ?? "").trim();}
+function setStatus(msg, cls){const el=$("status"); el.className="note"+(cls?" "+cls:""); el.innerHTML=msg;}
+function row(label, value){return value ? `<div class="k">${esc(label)}</div><div>${esc(value)}</div>` : "";}
+function score(r, q){
+  const model=text(r.model).toLowerCase();
+  const cert=text(r.certNo).toLowerCase();
+  const deriv=(r.derivModels||[]).map(x=>text(x).toLowerCase());
+  if(model === q) return 100;
+  if(cert === q) return 95;
+  if(deriv.includes(q)) return 90;
+  if(model.startsWith(q)) return 70;
+  if(cert.startsWith(q)) return 65;
+  if(deriv.some(x=>x.startsWith(q))) return 60;
+  return 10;
+}
+async function loadDb(){
+  try{
+    const res = await fetch(DB_URL, {cache:"no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    DB = await res.json();
+    const count = Array.isArray(DB.records) ? DB.records.length : 0;
+    $("db-count").textContent = `DB: ${count.toLocaleString()}건`;
+    setStatus(`DB 로딩 완료: <b>${count.toLocaleString()}건</b> · 생성시각: ${esc(DB.generatedAt || "-")}`, "ok");
+  }catch(e){
+    setStatus(`DB 로딩 실패: ${esc(e.message || e)}<br>GitHub Pages에 <code>index.html</code> 또는 <code>rra-test.html</code>과 같은 위치로 <code>rra_db.json</code>을 올렸는지 확인하세요.`, "err");
+  }
+}
+function search(){
+  if(!DB || !Array.isArray(DB.records)){ setStatus("DB가 아직 로딩되지 않았습니다.", "err"); return; }
+  const q = $("q").value.trim().toLowerCase();
+  const out = $("out");
+  if(!q){ out.innerHTML = '<div class="empty">검색어를 입력하세요.</div>'; $("summary").textContent = "검색어를 입력하세요."; return; }
+  const hits = DB.records.filter(r => String(r._s || [r.model, r.certNo, r.equipment, r.company, (r.derivModels||[]).join(" ")].join(" ")).toLowerCase().includes(q) || text(r.certNo).toLowerCase().includes(q));
+  hits.sort((a,b)=>score(b,q)-score(a,q));
+  $("summary").textContent = `검색어 '${$("q").value.trim()}' 결과: ${hits.length.toLocaleString()}건`;
+  if(!hits.length){ out.innerHTML = '<div class="empty">검색 결과가 없습니다. 모델명을 줄여서 다시 검색해보세요.</div>'; return; }
+  out.innerHTML = hits.slice(0,50).map(r=>{
+    const detail = r.certNo ? DETAIL_URL.replace("{certNo}", encodeURIComponent(r.certNo)) : "";
+    const deriv = (r.derivModels||[]).join(", ");
+    return `<div class="item">
+      <div class="cert">${esc(r.certNo || "-")}${detail ? ` <a href="${detail}" target="_blank" rel="noopener">[RRA 상세]</a>` : ""}</div>
+      <div class="kv">
+        ${row("상태", r.status)}
+        ${row("모델명", r.model)}
+        ${row("파생모델", deriv)}
+        ${row("기자재명", r.equipment)}
+        ${row("상호", r.company)}
+        ${row("제조자", r.maker)}
+        ${row("제조국", r.country)}
+        ${row("인증일", r.date)}
+      </div>
+    </div>`;
+  }).join("");
+}
+$("search").onclick = search;
+$("q").addEventListener("keydown", e => { if(e.key === "Enter") search(); });
+$("sample").onclick = () => { $("q").value = "COVE X1"; search(); };
+loadDb();
+</script>
+</body>
+</html>
