@@ -36,11 +36,11 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # 세션 쿠키 유지(JSESSIONID 등) + 리다이렉트 처리를 위한 공용 opener.
 # RRA 검색은 먼저 검색페이지를 받아 세션 쿠키를 받아야 결과 POST 가 동작한다.
-_COOKIES = http.cookiejar.CookieJar()
 _CTX_VERIFY = ssl.create_default_context()
 _CTX_NOVERIFY = ssl.create_default_context()
 _CTX_NOVERIFY.check_hostname = False
 _CTX_NOVERIFY.verify_mode = ssl.CERT_NONE
+_COOKIES = http.cookiejar.CookieJar()
 _OPENER_V = urllib.request.build_opener(
     urllib.request.HTTPSHandler(context=_CTX_VERIFY),
     urllib.request.HTTPCookieProcessor(_COOKIES))
@@ -49,13 +49,47 @@ _OPENER_N = urllib.request.build_opener(
     urllib.request.HTTPCookieProcessor(_COOKIES))
 
 
+def _is_cert_verify_failure(exc):
+    """인증서 검증 실패를 여러 Python/urllib 예외 형태에서 폭넓게 감지한다."""
+    queue = [exc]
+    seen = set()
+    while queue:
+        item = queue.pop(0)
+        if item is None:
+            continue
+        item_id = id(item)
+        if item_id in seen:
+            continue
+        seen.add(item_id)
+
+        if isinstance(item, (ssl.SSLError, ssl.CertificateError)):
+            return True
+
+        text = repr(item).lower()
+        if (
+            "certificate_verify_failed" in text
+            or "certificate verify failed" in text
+            or "basic constraints of ca cert not marked critical" in text
+        ):
+            return True
+
+        queue.extend((
+            getattr(item, "reason", None),
+            getattr(item, "__cause__", None),
+            getattr(item, "__context__", None),
+        ))
+    return False
+
+
 def _open(req, timeout=30):
     """검증 SSL 우선, 인증서 검증 실패 시에만 비검증으로 재시도(공공 사이트 인증서 이슈 대비)."""
     try:
         return _OPENER_V.open(req, timeout=timeout)
-    except urllib.error.URLError as e:
-        if isinstance(getattr(e, "reason", None), ssl.SSLError):
-            sys.stderr.write("[proxy] SSL 검증 실패 → 비검증 재시도\n")
+    except Exception as e:
+        # urllib.error.URLError.reason, ssl.SSLCertVerificationError 직접 발생,
+        # 문자열화된 CERTIFICATE_VERIFY_FAILED 등 Python/OS별 차이를 모두 흡수한다.
+        if _is_cert_verify_failure(e):
+            sys.stderr.write("[proxy] SSL 인증서 검증 실패 → 허용 호스트에 한해 비검증 재시도: %r\n" % e)
             return _OPENER_N.open(req, timeout=timeout)
         raise
 
