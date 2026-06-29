@@ -61,18 +61,32 @@ python3 server.py            # 기본 http://localhost:8000
 
 ## 설정값 채우기
 
-### 안전인증 (data.go.kr — 제품 안전인증 및 리콜 정보, 데이터 15116894)
+### 안전인증 (SafetyKorea — KC인증정보 Open API)
 
-1. data.go.kr 에서 본인 활용신청 API의 **상세페이지**를 엽니다.
-2. **요청주소**(오퍼레이션까지 포함된 URL)를 복사해 설정의 *안전인증 요청 URL* 에 붙여넣습니다.
-   예: `https://apis.data.go.kr/<기관코드>/<서비스>/<오퍼레이션>`
-3. **요청변수** 표에서 모델/품명 검색에 해당하는 파라미터명을 찾아
-   *안전인증 모델명 파라미터* 에 입력합니다. (예: `productName`, `modelName` 등)
-4. **일반 인증키(Decoding)** 를 *서비스키* 에 붙여넣습니다.
+국가기술표준원 SafetyKorea(제품안전정보센터)에서 발급한 **서비스 ID**를 사용합니다.
+data.go.kr 서비스키가 **아니며**, 인증은 쿼리 파라미터가 아니라 **`AuthKey` HTTP 헤더**로
+합니다. (이 헤더 인증 때문에 **반드시 '로컬 프록시' 모드**여야 합니다 — 공개 CORS
+프록시는 커스텀 헤더를 전달하지 못합니다.)
 
-> 응답이 XML/JSON 어느 쪽이든 자동 파싱하며, 인증번호/모델/품명/업체/일자 필드를
-> 흔한 이름들로 매칭합니다. 잘 안 맞으면 **디버그 표시**를 켜서 원본 응답의 실제
-> 필드명을 확인하고, `index.html` 의 `normalizeRecord()` 에 키를 추가하세요.
+- 엔드포인트: `http://www.safetykorea.kr/openapi/api/cert/certificationList.json`
+- 인증: 헤더 `AuthKey: <서비스 ID>` (대소문자 구분)
+- 파라미터: `conditionKey`(검색구분) + `conditionValue`(검색어)
+  - `conditionKey` 값: `all` / `certNum` / `productName` / `modelName` / `certDate` / `signDate`
+- 응답: `{ "resultCode":"2000", "resultMsg":"Success", "resultData":[ … ] }`
+  - 레코드 필드: `certNum`(인증번호) `certState`(인증상태) `modelName`(모델명)
+    `productName`(제품명) `certDiv`(인증구분) `makerName`(제조사) `importerName`(수입사)
+    `makerCntryName`(제조국) `certDate`(인증일자) 등
+  - 결과코드 `2000` = 성공. 그 외는 화면에 코드·메시지를 표시합니다.
+
+설정:
+
+1. **연결 방식 → 로컬 프록시** 로 두고 `python3 server.py` 실행.
+2. *안전인증 AuthKey* 에 발급받은 서비스 ID 입력 (localStorage 에만 저장).
+3. *검색 구분* 은 기본 `modelName`(모델명). *요청 URL* 은 기본값 그대로 두면 됩니다.
+4. 모델명을 입력하고 조회 → 인증번호·인증상태 등이 표시됩니다.
+
+> 최대 1,000건까지 반환됩니다. 응답이 안 맞으면 **디버그 표시**로 원본 JSON 을 확인하고
+> `index.html` 의 `normalizeSafety()` 필드 매핑을 조정하세요.
 
 ### 전파인증 ① 로컬 DB (기본, 모델명 검색 — 키 불필요) ★권장
 

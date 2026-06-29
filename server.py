@@ -26,6 +26,7 @@ from urllib.parse import urlparse, parse_qs
 ALLOWED_HOSTS = (
     "rra.go.kr", "www.rra.go.kr", "ccac.rra.go.kr",
     "emsit.go.kr", "www.emsit.go.kr",   # 전파인증(적합성평가) 무료 Open API
+    "safetykorea.kr", "www.safetykorea.kr", "office.safetykorea.kr",  # 안전인증(KC)
     "data.go.kr", "www.data.go.kr",
     "apis.data.go.kr", "api.data.go.kr", "apis.data.or.kr",
 )
@@ -75,14 +76,19 @@ class Handler(BaseHTTPRequestHandler):
         if tp.scheme not in ("http", "https") or not host_allowed(tp.netloc):
             return self.send_json(403, b'{"error":"host not allowed"}')
 
-        req = urllib.request.Request(target, headers={
+        fwd = {
             # 정부 사이트는 기본 파이썬 UA를 막는 경우가 있어 브라우저 UA로 위장.
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                           "AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/124.0 Safari/537.36",
             "Accept": "application/json, text/html, application/xml, */*",
             "Accept-Language": "ko-KR,ko;q=0.9",
-        })
+        }
+        # 안전인증(SafetyKorea)은 AuthKey 헤더 인증 → 클라이언트가 보낸 값을 그대로 중계.
+        auth = self.headers.get("AuthKey")
+        if auth:
+            fwd["AuthKey"] = auth
+        req = urllib.request.Request(target, headers=fwd)
         try:
             with urllib.request.urlopen(req, timeout=30, context=_SSL_CTX) as resp:
                 body = resp.read()

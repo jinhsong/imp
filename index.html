@@ -88,7 +88,7 @@
     </section>
     <section class="card" id="card-safety">
       <h2>안전인증 (KC) <span class="badge" id="badge-safety">대기</span></h2>
-      <div class="body" id="body-safety"><span class="muted">설정에서 API 키를 입력한 뒤 조회하세요.</span></div>
+      <div class="body" id="body-safety"><span class="muted">설정에서 AuthKey 를 입력하고(로컬 프록시 모드), 모델명으로 조회하세요.</span></div>
     </section>
   </div>
 
@@ -122,20 +122,27 @@
       <hr style="border-color:var(--line);margin:18px 0" />
 
       <div class="field">
-        <label>안전인증 data.go.kr 서비스키 (serviceKey)</label>
-        <input id="cfg-safetyKey" type="password" placeholder="발급받은 일반 인증키(Decoding) 붙여넣기" />
-        <div class="hint">브라우저 localStorage 에만 저장됩니다. 깃허브에 커밋되지 않습니다.</div>
+        <label>안전인증 AuthKey (SafetyKorea 서비스 ID)</label>
+        <input id="cfg-safetyKey" type="password" placeholder="국가기술표준원에서 발급받은 서비스 ID" />
+        <div class="hint">HTTP 헤더 <code>AuthKey</code> 로 전송됩니다. 대소문자 구분. localStorage 에만 저장(깃허브 미커밋). <b>로컬 프록시 모드 필요.</b></div>
       </div>
       <div class="grid2">
         <div class="field">
-          <label>안전인증 요청 URL (오퍼레이션까지)</label>
-          <input id="cfg-safetyBase" type="text" placeholder="예: https://apis.data.go.kr/.../getCertificationInfo" />
-          <div class="hint">data.go.kr 본인 API 상세페이지의 "요청주소"를 그대로 입력.</div>
+          <label>안전인증 요청 URL</label>
+          <input id="cfg-safetyBase" type="text" />
+          <div class="hint">SafetyKorea KC인증정보 조회. 기본값 그대로 사용 권장.</div>
         </div>
         <div class="field">
-          <label>안전인증 모델명 파라미터</label>
-          <input id="cfg-safetyModelParam" type="text" placeholder="예: productName / certUid / modelName" />
-          <div class="hint">상세페이지 요청변수 표에서 모델/품명 검색 파라미터명 확인.</div>
+          <label>검색 구분 (conditionKey)</label>
+          <select id="cfg-safetyConditionKey">
+            <option value="modelName">modelName (모델명)</option>
+            <option value="certNum">certNum (인증번호)</option>
+            <option value="productName">productName (제품명)</option>
+            <option value="all">all (전체)</option>
+            <option value="certDate">certDate (인증일자)</option>
+            <option value="signDate">signDate (등록일)</option>
+          </select>
+          <div class="hint">입력값(검색어)을 무엇으로 검색할지. 기본 모델명.</div>
         </div>
       </div>
 
@@ -213,9 +220,9 @@ const DEFAULTS = {
   dbUrl: "rra_db.json",
 
   // ── 안전인증 (data.go.kr: 제품 안전인증 및 리콜 정보, 데이터 15116894) ──
-  safetyKey: "",
-  safetyBase: "",                 // 본인 API 상세페이지의 요청주소(오퍼레이션까지)
-  safetyModelParam: "productName",// 모델/품명 검색 파라미터 (상세페이지에서 확인)
+  safetyKey: "",                  // SafetyKorea 서비스 ID (AuthKey 헤더로 전송)
+  safetyBase: "http://www.safetykorea.kr/openapi/api/cert/certificationList.json",
+  safetyConditionKey: "modelName",// 검색구분: all/certNum/productName/modelName/certDate/signDate
 
   // ── 전파인증 (RRA 무료 Open API, emsit.go.kr) : 인증번호(mtlCefNo)로 조회 ──
   rraStatusUrl: "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthStatus.do",
@@ -232,7 +239,13 @@ const LS_KEY = "cert-checker-config-v1";
 let cfg = loadConfig();
 
 function loadConfig(){
-  try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY)||"{}")); }
+  try{
+    const c = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY)||"{}"));
+    // 구버전 저장값 보정: 비어있으면 새 기본값으로
+    if(!c.safetyBase) c.safetyBase = DEFAULTS.safetyBase;
+    if(!c.safetyConditionKey) c.safetyConditionKey = DEFAULTS.safetyConditionKey;
+    return c;
+  }
   catch(e){ return Object.assign({}, DEFAULTS); }
 }
 function saveConfig(){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
@@ -245,7 +258,7 @@ function fillSettings(){
   F("cfg-corsProxy").value = cfg.corsProxy;
   F("cfg-safetyKey").value = cfg.safetyKey;
   F("cfg-safetyBase").value = cfg.safetyBase;
-  F("cfg-safetyModelParam").value = cfg.safetyModelParam;
+  F("cfg-safetyConditionKey").value = cfg.safetyConditionKey;
   F("cfg-rraStatusUrl").value = cfg.rraStatusUrl;
   F("cfg-rraInfoUrl").value = cfg.rraInfoUrl;
   F("cfg-rraParam").value = cfg.rraParam;
@@ -260,8 +273,8 @@ function readSettings(){
   cfg.localProxy = F("cfg-localProxy").value.trim();
   cfg.corsProxy = F("cfg-corsProxy").value.trim();
   cfg.safetyKey = F("cfg-safetyKey").value.trim();
-  cfg.safetyBase = F("cfg-safetyBase").value.trim();
-  cfg.safetyModelParam = F("cfg-safetyModelParam").value.trim() || "productName";
+  cfg.safetyBase = F("cfg-safetyBase").value.trim() || "http://www.safetykorea.kr/openapi/api/cert/certificationList.json";
+  cfg.safetyConditionKey = F("cfg-safetyConditionKey").value || "modelName";
   cfg.rraStatusUrl = F("cfg-rraStatusUrl").value.trim();
   cfg.rraInfoUrl = F("cfg-rraInfoUrl").value.trim();
   cfg.rraParam = F("cfg-rraParam").value.trim() || "mtlCefNo";
@@ -280,8 +293,9 @@ function updateModeNote(){
 }
 
 /* ---- 핵심: 대상 URL 을 프록시 경유로 가져오기 ---- */
-async function proxiedFetch(targetUrl){
+async function proxiedFetch(targetUrl, extraHeaders){
   let reqUrl;
+  const headers = Object.assign({ "Accept":"application/json, text/html, */*" }, extraHeaders||{});
   if(cfg.mode==="local"){
     const base = cfg.localProxy || "/fetch";
     reqUrl = base + (base.includes("?")?"&":"?") + "url=" + encodeURIComponent(targetUrl);
@@ -289,7 +303,7 @@ async function proxiedFetch(targetUrl){
     if(!cfg.corsProxy.includes("{url}")) throw new Error("공개 CORS 프록시 템플릿에 {url} 자리표시자가 필요합니다.");
     reqUrl = cfg.corsProxy.replace("{url}", encodeURIComponent(targetUrl));
   }
-  const res = await fetch(reqUrl, { headers:{ "Accept":"application/json, text/html, */*" }});
+  const res = await fetch(reqUrl, { headers });
   const text = await res.text();
   if(!res.ok) throw new Error("HTTP "+res.status+"\n"+text.slice(0,500));
   return text;
@@ -298,15 +312,10 @@ async function proxiedFetch(targetUrl){
 /* ---- URL 빌더 ---- */
 function buildSafetyUrl(model){
   if(!cfg.safetyBase) throw new Error("설정에서 '안전인증 요청 URL'을 입력하세요.");
-  if(!cfg.safetyKey)  throw new Error("설정에서 '안전인증 서비스키'를 입력하세요.");
+  // SafetyKorea KC인증정보 조회: conditionKey=검색구분, conditionValue=검색어
   const u = new URL(cfg.safetyBase);
-  // serviceKey 는 보통 디코딩키. URL 객체가 자동 인코딩하므로 그대로 set.
-  u.searchParams.set("serviceKey", cfg.safetyKey);
-  u.searchParams.set(cfg.safetyModelParam, model);
-  u.searchParams.set("pageNo", "1");
-  u.searchParams.set("numOfRows", "20");
-  if(!u.searchParams.has("returnType")) u.searchParams.set("returnType","json");
-  if(!u.searchParams.has("type")) u.searchParams.set("type","json");
+  u.searchParams.set("conditionKey", cfg.safetyConditionKey || "modelName");
+  u.searchParams.set("conditionValue", model);
   return u.toString();
 }
 function buildRraUrl(baseUrl, certNo){
@@ -315,24 +324,21 @@ function buildRraUrl(baseUrl, certNo){
   return u.toString();
 }
 
-/* ---- 파서: 안전인증 (JSON 우선, 실패 시 XML) ---- */
+/* ---- 파서: 안전인증 (SafetyKorea KC인증정보) ---- */
+// 응답: { resultCode:"2000", resultMsg:"Success", resultData:[ {certNum, certState, modelName, ...} ] }
 function parseSafety(text){
-  let items = [];
-  // 1) JSON 시도
-  try{
-    const j = JSON.parse(text);
-    let arr = deepFindArray(j);
-    items = (arr||[]).map(o => normalizeRecord(o));
-  }catch(e){
-    // 2) XML 시도
+  let j;
+  try{ j = JSON.parse(text); }
+  catch(e){
+    // XML(.xml 확장자) 응답 폴백
     const doc = new DOMParser().parseFromString(text, "application/xml");
-    const items_ = doc.querySelectorAll("item");
-    items = Array.from(items_).map(node=>{
-      const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); });
-      return normalizeRecord(o);
-    });
+    const nodes = doc.querySelectorAll("resultData, item");
+    return Array.from(nodes).map(node=>{ const o={}; node.childNodes.forEach(c=>{ if(c.nodeType===1) o[c.nodeName]=c.textContent.trim(); }); return normalizeSafety(o); });
   }
-  return items;
+  const code = String(j.resultCode!=null ? j.resultCode : "");
+  if(code && code !== "2000") throw new Error("SafetyKorea 응답 오류 ["+code+"] "+(j.resultMsg||"")+"\n(AuthKey/검색구분 확인)");
+  const arr = Array.isArray(j.resultData) ? j.resultData : (deepFindArray(j) || []);
+  return arr.map(normalizeSafety);
 }
 // JSON 응답 안에서 레코드 배열을 재귀로 탐색 (data.go.kr 구조가 제각각이므로)
 function deepFindArray(obj){
@@ -345,15 +351,19 @@ function deepFindArray(obj){
   }
   return null;
 }
-// 다양한 필드명을 인증번호/모델/품명/업체/일자로 정규화
-function normalizeRecord(o){
-  const pick = (...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]) return String(o[ok]); } } return ""; };
+// SafetyKorea 인증 레코드 정규화
+function normalizeSafety(o){
+  const pick = (...keys)=>{ for(const k of keys){ for(const ok of Object.keys(o)){ if(ok.toLowerCase()===k.toLowerCase() && o[ok]!=null && o[ok]!=="") return String(o[ok]); } } return ""; };
   return {
-    certNo: pick("certNum","certUid","certificationNumber","cert_no","certNo","인증번호","certnum"),
-    model:  pick("modelName","model","prdtModel","modelNm","모델명","derivationModel","basicModel"),
-    name:   pick("productName","prdtNm","itemName","품명","제품명","equipmentName","기자재명칭"),
-    company:pick("companyName","makerName","importerName","업체명","제조자","manufacturer","maker"),
-    date:   pick("certDate","certificationDate","인증일자","certDt","date"),
+    certNo:  pick("certNum"),
+    status:  pick("certState"),
+    model:   pick("modelName"),
+    name:    pick("productName"),
+    company: pick("makerName"),
+    importer:pick("importerName"),
+    country: pick("makerCntryName"),
+    div:     pick("certDiv"),
+    date:    pick("certDate"),
     _raw:o
   };
 }
@@ -395,26 +405,30 @@ function setBadge(which, state, label){
   b.className = "badge "+(state||"");
   b.textContent = label;
 }
-function renderResults(which, items, rawText){
-  const body = F("body-"+which);
+function renderSafety(items, rawText){
+  const body = F("body-safety");
   body.innerHTML = "";
   if(!items.length){
-    body.innerHTML = '<span class="muted">검색 결과가 없습니다. 모델명/설정을 확인하세요.</span>';
+    body.innerHTML = '<span class="muted">검색 결과가 없습니다. 모델명/검색구분/AuthKey 를 확인하세요.</span>';
   }else{
-    items.slice(0,15).forEach(it=>{
+    items.slice(0,30).forEach(it=>{
       const div = document.createElement("div");
       div.className = "result-item";
-      const detail = it.detailUrl ? ` <a href="${it.detailUrl}" target="_blank" rel="noopener">[상세]</a>` : "";
       div.innerHTML =
-        `<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}${detail}</div>
+        `<div class="certno">${escapeHtml(it.certNo||"(인증번호 미확인)")}</div>
          <div class="kv">
-           ${it.model?`<div class="k">모델</div><div>${escapeHtml(it.model)}</div>`:""}
-           ${it.name?`<div class="k">품명/기자재</div><div>${escapeHtml(it.name)}</div>`:""}
-           ${it.company?`<div class="k">업체</div><div>${escapeHtml(it.company)}</div>`:""}
+           ${it.status?`<div class="k">인증상태</div><div>${escapeHtml(it.status)}</div>`:""}
+           ${it.model?`<div class="k">모델명</div><div>${escapeHtml(it.model)}</div>`:""}
+           ${it.name?`<div class="k">제품명</div><div>${escapeHtml(it.name)}</div>`:""}
+           ${it.div?`<div class="k">인증구분</div><div>${escapeHtml(it.div)}</div>`:""}
+           ${it.company?`<div class="k">제조사</div><div>${escapeHtml(it.company)}</div>`:""}
+           ${it.importer?`<div class="k">수입사</div><div>${escapeHtml(it.importer)}</div>`:""}
+           ${it.country?`<div class="k">제조국</div><div>${escapeHtml(it.country)}</div>`:""}
            ${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}
          </div>`;
       body.appendChild(div);
     });
+    if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
   }
   if(F("show-debug").checked && rawText!=null){
     const pre = document.createElement("pre");
@@ -608,11 +622,14 @@ function renderRraList(items, rawText){
 async function querySafety(model){
   setBadge("safety","run","조회중…");
   try{
+    if(!cfg.safetyKey) throw new Error("설정에서 '안전인증 AuthKey'를 입력하세요. (SafetyKorea 서비스 ID)");
+    // AuthKey 는 HTTP 헤더로 전달 → 로컬 프록시(server.py)가 그대로 중계.
+    if(cfg.mode !== "local") throw new Error("안전인증은 AuthKey 헤더 인증이라 '로컬 프록시' 모드가 필요합니다.\n(공개 CORS 프록시는 커스텀 헤더를 전달하지 못합니다.) 설정에서 연결 방식을 '로컬 프록시'로 바꾸고 server.py 를 실행하세요.");
     const url = buildSafetyUrl(model);
-    const text = await proxiedFetch(url);
+    const text = await proxiedFetch(url, { "AuthKey": cfg.safetyKey });
     const items = parseSafety(text);
     setBadge("safety", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
-    renderResults("safety", items, text);
+    renderSafety(items, text);
   }catch(e){ setBadge("safety","err","오류"); renderError("safety", e); }
 }
 function getModel(){
