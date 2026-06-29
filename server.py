@@ -17,6 +17,7 @@
 import sys
 import os
 import ssl
+import http.cookiejar
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,8 +34,30 @@ ALLOWED_HOSTS = (
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# 일부 환경의 인증서 검증 이슈를 피하기 위한 컨텍스트 (정부 사이트는 보통 유효).
-_SSL_CTX = ssl.create_default_context()
+# 세션 쿠키 유지(JSESSIONID 등) + 리다이렉트 처리를 위한 공용 opener.
+# RRA 검색은 먼저 검색페이지를 받아 세션 쿠키를 받아야 결과 POST 가 동작한다.
+_COOKIES = http.cookiejar.CookieJar()
+_CTX_VERIFY = ssl.create_default_context()
+_CTX_NOVERIFY = ssl.create_default_context()
+_CTX_NOVERIFY.check_hostname = False
+_CTX_NOVERIFY.verify_mode = ssl.CERT_NONE
+_OPENER_V = urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=_CTX_VERIFY),
+    urllib.request.HTTPCookieProcessor(_COOKIES))
+_OPENER_N = urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=_CTX_NOVERIFY),
+    urllib.request.HTTPCookieProcessor(_COOKIES))
+
+
+def _open(req, timeout=30):
+    """검증 SSL 우선, 인증서 검증 실패 시에만 비검증으로 재시도(공공 사이트 인증서 이슈 대비)."""
+    try:
+        return _OPENER_V.open(req, timeout=timeout)
+    except urllib.error.URLError as e:
+        if isinstance(getattr(e, "reason", None), ssl.SSLError):
+            sys.stderr.write("[proxy] SSL 검증 실패 → 비검증 재시도\n")
+            return _OPENER_N.open(req, timeout=timeout)
+        raise
 
 
 def host_allowed(netloc: str) -> bool:
@@ -96,13 +119,31 @@ class Handler(BaseHTTPRequestHandler):
         auth = self.headers.get("AuthKey")
         if auth:
             fwd["AuthKey"] = auth
-        # 전파인증 실시간조회 등 POST 요청은 본문/Content-Type 을 그대로 전달.
+
+        host = tp.netloc.split(":")[0].lower()
+        is_rra = host.endswith("rra.go.kr")
+
+        # 전파인증 실시간조회 등 POST 요청: 본문/Content-Type/Referer/Origin 설정.
         if post_body is not None:
             fwd["Content-Type"] = self.headers.get(
                 "Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            origin = tp.scheme + "://" + tp.netloc
+            fwd["Origin"] = origin
+            # RRA 결과 POST 는 검색페이지를 Referer 로 요구.
+            fwd["Referer"] = ("https://www.rra.go.kr/ko/license/A_c_search.do"
+                              if is_rra else origin + "/")
+            # RRA: 먼저 검색페이지를 GET 해 세션 쿠키(JSESSIONID)를 받아둔다.
+            if is_rra:
+                try:
+                    _open(urllib.request.Request(fwd["Referer"], headers={
+                        "User-Agent": fwd["User-Agent"], "Accept": fwd["Accept"],
+                        "Accept-Language": fwd["Accept-Language"]}), timeout=20).read()
+                except Exception as e:  # noqa  (쿠키 시드는 실패해도 본 요청 시도)
+                    sys.stderr.write("[proxy] RRA 세션 시드 실패: %r\n" % e)
+
         req = urllib.request.Request(target, data=post_body, headers=fwd)
         try:
-            with urllib.request.urlopen(req, timeout=30, context=_SSL_CTX) as resp:
+            with _open(req, timeout=30) as resp:
                 body = resp.read()
                 ctype = resp.headers.get("Content-Type", "text/html; charset=utf-8")
                 self.send_response(200)
@@ -119,7 +160,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         except Exception as e:  # noqa
-            msg = ('{"error":"upstream fetch failed","detail":%r}' % str(e)).encode("utf-8")
+            import json as _json
+            detail = "%s: %s" % (type(e).__name__, e)
+            reason = getattr(e, "reason", None)
+            if reason is not None:
+                detail += " (reason: %r)" % (reason,)
+            sys.stderr.write("[proxy] upstream 실패 [%s] %s\n" % (target, detail))
+            msg = _json.dumps({"error": "upstream fetch failed", "detail": detail},
+                              ensure_ascii=False).encode("utf-8")
             self.send_json(502, msg)
 
     # ---- 정적 파일 ----
