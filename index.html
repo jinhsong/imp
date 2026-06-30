@@ -571,74 +571,100 @@ async function queryRraLive(model){
     const items = parseRraLive(html, model);
     setBadge("rra", items.length?"ok":"err", items.length?`${items.length}건`:"없음");
     renderRraLive(items, html, model);
+    if(items.length) fillRraCertNos(items);   // 상세팝업에서 인증번호 보충
   }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
 }
-// 결과 HTML 에서 인증번호를 추출. 인증번호는 보통 상세팝업 링크(key_no=...) 속성에
-// 들어있으므로 링크/onclick 도 함께 본다. 표 구조 변화에 견디도록 셀 전체 보존.
-function rowCertNo(tr, cells){
-  const inner = tr.innerHTML || "";
-  const km = inner.match(/key_no=([^&"'\s)]+)/i);
-  if(km) return decodeURIComponent(km[1]);
-  const m = (cells.join("  ")).match(RRA_CERT_RE);
-  return m ? m[0] : "";
-}
+/* ---- 전파인증 실시간조회 결과 파싱 (RRA A_c_search_view.do) ----
+   결과표에는 인증번호가 없고 상세링크(app_no)만 있음 → 행 정보를 파싱한 뒤
+   각 상세팝업(A_b_popup.do?app_no=)에서 인증번호를 보충 추출한다. */
+const RRA_POPUP = "https://www.rra.go.kr/ko/license/A_b_popup.do?app_no=";
 function parseRraLive(html, model){
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const out = [];
-  const seen = new Set();
-  doc.querySelectorAll("table tr").forEach(tr=>{
-    const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
-    if(!cells.length) return;
-    const certNo = rowCertNo(tr, cells);
-    if(!certNo) return;
-    const key = certNo + "|" + cells.join("|");
-    if(seen.has(key)) return;
-    seen.add(key);
-    out.push({ certNo, cells, detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)) });
+  const q = (model||"").toUpperCase();
+  const out = [], seen = new Set();
+  doc.querySelectorAll("table tr").forEach(function(tr){
+    const tds = Array.from(tr.querySelectorAll("td"));
+    if(tds.length < 3) return;
+    const cells = tds.map(td=>td.textContent.replace(/\s+/g," ").trim());
+    const rowHtml = tr.innerHTML || "";
+    const appNo = (rowHtml.match(/app_no=(\d+)/)||[])[1] || "";
+    const keyM = rowHtml.match(/key_no=([^&"'\s)]+)/i);
+    const keyNo = keyM ? decodeURIComponent(keyM[1]) : "";
+    if(!appNo && !keyNo) return;                 // 결과 행만(레이아웃/헤더 제외)
+    const dup = appNo || keyNo;
+    if(seen.has(dup)) return; seen.add(dup);
+    const links = Array.from(tr.querySelectorAll("a")).map(a=>a.textContent.replace(/\s+/g," ").trim()).filter(Boolean);
+    const date = cells.find(c=>/^\d{4}-\d{2}-\d{2}$/.test(c)) || "";
+    const status = cells.find(c=>/적합|부적합|취소|만료|청문|반납|효력|개선|금지|등록/.test(c)) || "";
+    const country = cells.find(c=>/[가-힣]/.test(c) && /(한국|중국|베트남|미국|일본|대만|독일|태국|말레이|인도|필리|멕시코|영국|프랑스|폴란드|헝가리|체코|브라질|,)/.test(c)) || "";
+    let modelCell = (q && cells.find(c=>c.toUpperCase().includes(q)))
+      || cells.find(c=>/[A-Za-z0-9]/.test(c) && !/[가-힣]/.test(c) && c!==date && !/^\d+$/.test(c)) || "";
+    out.push({
+      appNo: appNo, certNo: keyNo,
+      company: links[0]||"", equipment: links[1]||"",
+      model: modelCell, country: country, date: date, status: status,
+      detail: keyNo ? cfg.rraDetail.replace("{certNo}", encodeURIComponent(keyNo))
+                    : (appNo ? RRA_POPUP + encodeURIComponent(appNo) : "")
+    });
   });
-  if(!out.length){
-    const re = /key_no=([^&"'\s)]+)/ig; let mm;
-    while((mm = re.exec(html))){
-      const c = decodeURIComponent(mm[1]);
-      if(seen.has(c)) continue; seen.add(c);
-      out.push({ certNo:c, cells:[], detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(c)) });
-    }
-  }
-  if(model){ const q=model.toUpperCase(); out.sort((a,b)=> (b.cells.join(" ").toUpperCase().includes(q)?1:0)-(a.cells.join(" ").toUpperCase().includes(q)?1:0)); }
   return out;
 }
+function rraRowId(it){ return "rra-row-" + (it.appNo || it.certNo || ""); }
 function renderRraLive(items, rawText, model){
   const body=F("body-rra"); body.innerHTML="";
   if(!items.length){
-    const raw = rawText || "";
-    const up = raw.toUpperCase();
-    const keyNo = (raw.match(/key_no=/gi)||[]).length;
-    const certPat = (raw.match(/\bR-[A-Z]{1,4}-[A-Za-z0-9]/g)||[]).length;
-    const mUp = (model||"").toUpperCase();
-    const idx = mUp ? up.indexOf(mUp) : -1;
-    let diag = `<div class="muted">결과 0건. 진단: 응답 ${raw.length.toLocaleString()}자 · key_no ${keyNo}개 · 인증번호패턴 ${certPat}개 · 모델명 '${escapeHtml(model||"")}' ${idx>=0?"포함":"미포함"}.</div>`;
-    if(keyNo===0 && certPat===0)
-      diag += `<div class="hint">응답에 인증번호가 없습니다 — 기간 밖이거나, 결과가 별도 요청으로 로드되거나, 검색 파라미터가 다를 수 있습니다.</div>`;
-    else
-      diag += `<div class="hint">응답엔 인증번호가 있는데 추출이 안 됐습니다 — 표 구조가 예상과 다릅니다. 아래 '모델명 주변'을 공유해 주세요.</div>`;
-    if(idx>=0){
-      const seg = raw.slice(Math.max(0, idx-500), idx+800);
-      diag += `<div class="hint">모델명 주변 원본:</div><pre class="debug">${escapeHtml(seg)}</pre>`;
-    }
-    body.innerHTML = diag;
-  }else items.slice(0,30).forEach(it=>{
-    // 인증번호 셀을 제외한 나머지 셀들을 정보로 표시
-    const others = it.cells.filter(c=>c && c!==it.certNo);
-    const div=document.createElement("div"); div.className="result-item";
-    div.innerHTML =
-      `<div class="certno">${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a></div>
-       <div class="kv"><div class="k">정보</div><div>${escapeHtml(others.join(" · "))}</div></div>`;
-    body.appendChild(div);
-  });
-  if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
+    const raw = rawText || "", up = raw.toUpperCase();
+    const keyNo=(raw.match(/key_no=/gi)||[]).length, appNo=(raw.match(/app_no=/gi)||[]).length;
+    const certPat=(raw.match(/\bR-[A-Z]{1,4}-[A-Za-z0-9]/g)||[]).length;
+    const mUp=(model||"").toUpperCase(), idx=mUp?up.indexOf(mUp):-1;
+    let diag=`<div class="muted">결과 0건. 진단: 응답 ${raw.length.toLocaleString()}자 · app_no ${appNo}개 · key_no ${keyNo}개 · 인증번호패턴 ${certPat}개 · 모델명 '${escapeHtml(model||"")}' ${idx>=0?"포함":"미포함"}.</div>`;
+    if(appNo===0 && keyNo===0 && certPat===0)
+      diag+=`<div class="hint">응답에 결과 행이 없습니다 — 기간 밖이거나 검색 파라미터가 다를 수 있습니다.</div>`;
+    if(idx>=0){ const seg=raw.slice(Math.max(0,idx-500),idx+800); diag+=`<div class="hint">모델명 주변 원본:</div><pre class="debug">${escapeHtml(seg)}</pre>`; }
+    body.innerHTML=diag;
+  }else{
+    items.slice(0,30).forEach(function(it){
+      const div=document.createElement("div"); div.className="result-item"; div.id=rraRowId(it);
+      const certHtml = it.certNo
+        ? `${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a>`
+        : `<span class="muted">인증번호 조회중…</span>${it.detail?` <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a>`:""}`;
+      div.innerHTML =
+        `<div class="certno" data-cert>${certHtml}</div>
+         <div class="kv">
+           ${it.status?`<div class="k">인증상태</div><div>${escapeHtml(it.status)}</div>`:""}
+           ${it.model?`<div class="k">모델명</div><div>${escapeHtml(it.model)}</div>`:""}
+           ${it.equipment?`<div class="k">기자재명칭</div><div>${escapeHtml(it.equipment)}</div>`:""}
+           ${it.company?`<div class="k">상호</div><div>${escapeHtml(it.company)}</div>`:""}
+           ${it.country?`<div class="k">제조국</div><div>${escapeHtml(it.country)}</div>`:""}
+           ${it.date?`<div class="k">인증일자</div><div>${escapeHtml(it.date)}</div>`:""}
+         </div>`;
+      body.appendChild(div);
+    });
+    if(items.length>30) body.insertAdjacentHTML("beforeend", `<div class="hint">상위 30건 표시 (총 ${items.length}건)</div>`);
+  }
   if(F("show-debug").checked && rawText!=null){ const pre=document.createElement("pre"); pre.className="debug"; pre.textContent=rawText.slice(0,20000); body.appendChild(pre); }
 }
-
+function updateRraCert(it){
+  const row=document.getElementById(rraRowId(it)); if(!row) return;
+  const slot=row.querySelector("[data-cert]"); if(!slot) return;
+  if(it.certNo){
+    slot.innerHTML = `${escapeHtml(it.certNo)} <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a>`;
+  }else{
+    slot.innerHTML = `<span class="muted">(상세에서 확인)</span>${it.detail?` <a href="${it.detail}" target="_blank" rel="noopener">[상세]</a>`:""}`;
+  }
+}
+// 상세팝업(app_no)에서 인증번호(R-...) 보충 추출
+async function fillRraCertNos(items){
+  const targets = items.filter(it=>!it.certNo && it.appNo).slice(0,15);
+  await Promise.all(targets.map(async function(it){
+    try{
+      const h = await proxiedFetch(RRA_POPUP + encodeURIComponent(it.appNo));
+      const m = h.match(RRA_CERT_RE);
+      if(m){ it.certNo = m[0]; it.detail = cfg.rraDetail.replace("{certNo}", encodeURIComponent(m[0])); }
+    }catch(e){ /* 무시: 상세 링크는 유지 */ }
+    updateRraCert(it);
+  }));
+}
 async function querySafety(model){
   setBadge("safety","run","조회중…");
   try{

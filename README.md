@@ -133,8 +133,10 @@ XML 파싱/필드 매핑은 `index.html` 의 `parseRraInfo()` 에서 조정합�
   (`application/x-www-form-urlencoded`)
 - 본문: `category=&fromdate=<YYYYMMDD>&todate=<YYYYMMDD>&firm=&equip=&model_no=<모델명>&app_no=&maker=&nation=`
   - **`model_no`** 가 모델명, **`fromdate`/`todate`** 가 인증일자 기간
-- 응답(HTML 결과표)에서 인증번호 패턴이 있는 행을 추출해 인증번호 + 셀 정보를 표시하고,
-  각 인증번호의 `[상세]` 링크로 RRA 팝업을 엽니다.
+- 응답(euc-kr HTML 결과표; server.py 가 UTF-8 로 변환)에서 각 결과 행(상호·기자재명칭·
+  모델명·제조국·인증일·인증상태·상세링크 `app_no`)을 파싱합니다. 결과표에는 인증번호가
+  없으므로, 각 행의 상세팝업(`A_b_popup.do?app_no=`)을 받아 **인증번호(R-…)를 보충 추출**해
+  표시합니다(처음엔 "인증번호 조회중…" 후 채워짐).
 
 설정의 *인증일자 시작/종료* 로 기간을 바꿀 수 있습니다(기본 2000-01-01 ~ 오늘).
 
