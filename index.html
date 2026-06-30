@@ -59,6 +59,12 @@
   .toolbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
   .note{font-size:12px;color:var(--warn);background:rgba(255,207,92,.08);
     border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:10px 12px;margin-top:14px}
+  textarea{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:10px 12px;resize:vertical}
+  table.batch{border-collapse:collapse;width:100%;margin-top:12px;font-size:13px}
+  table.batch th,table.batch td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  table.batch th{background:var(--panel2);color:var(--muted)}
+  table.batch td.model{font-weight:600;white-space:nowrap}
+  .cellok{color:var(--ok)} .cellno{color:var(--muted)} .cellerr{color:var(--err)}
 </style>
 </head>
 <body>
@@ -93,6 +99,27 @@
   </div>
 
   <div class="note" id="mode-note"></div>
+
+  <details class="settings" id="batch-box">
+    <summary>📋 여러 모델 일괄 조회</summary>
+    <div class="body">
+      <div class="field">
+        <label>모델명 목록 (한 줄에 하나씩, 또는 쉼표로 구분)</label>
+        <textarea id="batch-input" rows="5" style="width:100%" placeholder="예) SM-S948N, SM-S921N&#10;COVE X1"></textarea>
+      </div>
+      <div class="row" style="font-size:13px;color:var(--muted)">
+        <label><input type="checkbox" id="batch-rra" checked style="width:auto" /> 전파인증</label>
+        <label style="margin-left:6px"><input type="checkbox" id="batch-safety" style="width:auto" /> 안전인증</label>
+        <span class="hint">전파인증은 위 카드의 ‘조회 기준’(로컬DB/실시간)을 따릅니다. 안전인증은 AuthKey + 로컬 프록시 필요.</span>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="batch-run">일괄 조회</button>
+        <button id="batch-csv" disabled>CSV 다운로드</button>
+        <span class="hint" id="batch-progress"></span>
+      </div>
+      <div id="batch-results" style="overflow:auto"></div>
+    </div>
+  </details>
 
   <details class="settings" id="settings">
     <summary>⚙️ 설정 (프록시 · API 키 · 엔드포인트)</summary>
@@ -684,11 +711,117 @@ function getModel(){
   return m;
 }
 
+/* ============ 여러 모델 일괄 조회 ============ */
+// 데이터 반환용 소스 함수 (단일조회 함수의 구성요소를 재사용, 렌더링 없음)
+async function srcRraDb(model){
+  const db = await loadRraDb();
+  const q = model.trim().toLowerCase();
+  const hits = db.records.filter(r=>r._s.includes(q));
+  hits.sort((a,b)=>dbMatchScore(b,q)-dbMatchScore(a,q));
+  return hits.map(r=>({certNo:r.certNo, status:r.status, model:r.model, company:r.company,
+    detail: r.certNo ? cfg.rraDetail.replace("{certNo}", encodeURIComponent(r.certNo)) : ""}));
+}
+async function srcRraLive(model){
+  if(cfg.mode!=="local") throw new Error("실시간조회는 로컬 프록시 필요");
+  const html = await proxiedFetch(cfg.rraLiveUrl, null, buildRraLiveBody(model));
+  const items = parseRraLive(html, model);
+  // 첫 행만 인증번호 보충(요청 수 절약)
+  const f = items[0];
+  if(f && !f.certNo && f.appNo){
+    try{ const h=await proxiedFetch(RRA_POPUP+encodeURIComponent(f.appNo)); const m=h.match(RRA_CERT_RE);
+      if(m){ f.certNo=m[0]; f.detail=cfg.rraDetail.replace("{certNo}",encodeURIComponent(m[0])); } }catch(e){}
+  }
+  return items;
+}
+async function srcSafety(model){
+  if(!cfg.safetyKey) throw new Error("AuthKey 미입력");
+  if(cfg.mode!=="local") throw new Error("로컬 프록시 필요");
+  const text = await proxiedFetch(buildSafetyUrl(model), {"AuthKey":cfg.safetyKey});
+  return parseSafety(text);
+}
+
+let BATCH_ROWS = [];
+function parseModelList(text){
+  return [...new Set((text||"").split(/[\n,;\t]+/).map(s=>s.trim()).filter(Boolean))];
+}
+function summCell(items, err){
+  if(err) return `<span class="cellerr">오류: ${escapeHtml(err)}</span>`;
+  if(!items || !items.length) return `<span class="cellno">없음</span>`;
+  const f = items[0];
+  const cert = f.certNo || "(상세확인)";
+  const link = f.detail ? ` <a href="${f.detail}" target="_blank" rel="noopener">[상세]</a>` : "";
+  const st = f.status ? ` · ${escapeHtml(f.status)}` : "";
+  const more = items.length>1 ? ` <span class="cellno">외 ${items.length-1}건</span>` : "";
+  return `<span class="cellok">${escapeHtml(cert)}</span>${st}${link}${more}`;
+}
+async function runBatch(){
+  const models = parseModelList(F("batch-input").value);
+  if(!models.length){ alert("모델명을 입력하세요 (줄바꿈 또는 쉼표 구분)."); return; }
+  const doRra = F("batch-rra").checked, doSafety = F("batch-safety").checked;
+  if(!doRra && !doSafety){ alert("전파인증/안전인증 중 하나 이상 선택하세요."); return; }
+  const rraMode = (document.querySelector('input[name=rraMode]:checked')||{}).value || "db";
+  const rraLabel = (doRra ? (rraMode==="live" ? "전파인증(실시간)" : "전파인증(로컬DB)") : "");
+
+  F("batch-run").disabled = true; F("batch-csv").disabled = true;
+  BATCH_ROWS = [];
+  const res = F("batch-results");
+  res.innerHTML = `<table class="batch"><thead><tr><th>모델명</th>${doRra?`<th>${rraLabel}</th>`:""}${doSafety?"<th>안전인증(KC)</th>":""}</tr></thead><tbody id="batch-tbody"></tbody></table>`;
+  const tb = F("batch-tbody");
+
+  for(let i=0;i<models.length;i++){
+    const model = models[i];
+    F("batch-progress").textContent = `조회 중… ${i+1}/${models.length} (${model})`;
+    const rec = { model, rra:null, rraErr:"", safety:null, safetyErr:"" };
+    if(doRra){
+      try{ rec.rra = (rraMode==="live") ? await srcRraLive(model) : await srcRraDb(model); }
+      catch(e){ rec.rraErr = e.message||String(e); }
+    }
+    if(doSafety){
+      try{ rec.safety = await srcSafety(model); }
+      catch(e){ rec.safetyErr = e.message||String(e); }
+    }
+    BATCH_ROWS.push(rec);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="model">${escapeHtml(model)}</td>`
+      + (doRra ? `<td>${summCell(rec.rra, rec.rraErr)}</td>` : "")
+      + (doSafety ? `<td>${summCell(rec.safety, rec.safetyErr)}</td>` : "");
+    tb.appendChild(tr);
+  }
+  F("batch-progress").textContent = `완료: ${models.length}건`;
+  F("batch-run").disabled = false; F("batch-csv").disabled = false;
+}
+function csvField(s){ s = (s==null?"":String(s)); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function downloadBatchCsv(){
+  if(!BATCH_ROWS.length){ alert("먼저 일괄 조회를 실행하세요."); return; }
+  const head = ["모델명","전파_건수","전파_인증번호","전파_인증상태","안전_건수","안전_인증번호","안전_인증상태"];
+  const lines = [head.join(",")];
+  for(const r of BATCH_ROWS){
+    const rf = r.rra||[], sf = r.safety||[];
+    const r0 = rf[0]||{}, s0 = sf[0]||{};
+    lines.push([
+      csvField(r.model),
+      csvField(r.rraErr ? "오류" : rf.length),
+      csvField(r.rraErr ? r.rraErr : (r0.certNo||"")),
+      csvField(r.rraErr ? "" : (r0.status||"")),
+      csvField(r.safetyErr ? "오류" : sf.length),
+      csvField(r.safetyErr ? r.safetyErr : (s0.certNo||"")),
+      csvField(r.safetyErr ? "" : (s0.status||"")),
+    ].join(","));
+  }
+  const blob = new Blob(["﻿"+lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cert-batch-" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
 /* ---- 이벤트 ---- */
 F("btn-both").onclick   = ()=>{ const m=getModel(); if(m){ queryRra(m); querySafety(m); } };
 F("btn-rra").onclick    = ()=>{ const m=getModel(); if(m) queryRra(m); };
 F("btn-safety").onclick = ()=>{ const m=getModel(); if(m) querySafety(m); };
 F("model").addEventListener("keydown", e=>{ if(e.key==="Enter") F("btn-both").click(); });
+F("batch-run").onclick = runBatch;
+F("batch-csv").onclick = downloadBatchCsv;
 document.querySelectorAll('input[name=rraMode]').forEach(r=>r.addEventListener("change", ()=>{
   const m=(document.querySelector('input[name=rraMode]:checked')||{}).value;
   F("body-rra").innerHTML =
