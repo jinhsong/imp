@@ -573,19 +573,37 @@ async function queryRraLive(model){
     renderRraLive(items, html);
   }catch(e){ setBadge("rra","err","오류"); renderError("rra", e); }
 }
-// 결과 HTML 표에서 인증번호가 들어있는 행을 추출 (열 구조 변화에 견디도록 셀 전체 보존)
+// 결과 HTML 에서 인증번호를 추출. 인증번호는 보통 상세팝업 링크(key_no=...) 속성에
+// 들어있으므로 링크/onclick 도 함께 본다. 표 구조 변화에 견디도록 셀 전체 보존.
+function rowCertNo(tr, cells){
+  const inner = tr.innerHTML || "";
+  const km = inner.match(/key_no=([^&"'\s)]+)/i);
+  if(km) return decodeURIComponent(km[1]);
+  const m = (cells.join("  ")).match(RRA_CERT_RE);
+  return m ? m[0] : "";
+}
 function parseRraLive(html, model){
   const doc = new DOMParser().parseFromString(html, "text/html");
   const out = [];
+  const seen = new Set();
   doc.querySelectorAll("table tr").forEach(tr=>{
     const cells = Array.from(tr.querySelectorAll("td")).map(td=>td.textContent.replace(/\s+/g," ").trim());
     if(!cells.length) return;
-    const m = cells.join("  ").match(RRA_CERT_RE);
-    if(!m) return;
-    const certNo = m[0];
+    const certNo = rowCertNo(tr, cells);
+    if(!certNo) return;
+    const key = certNo + "|" + cells.join("|");
+    if(seen.has(key)) return;
+    seen.add(key);
     out.push({ certNo, cells, detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(certNo)) });
   });
-  // 모델명이 셀에 포함된 행 우선
+  if(!out.length){
+    const re = /key_no=([^&"'\s)]+)/ig; let mm;
+    while((mm = re.exec(html))){
+      const c = decodeURIComponent(mm[1]);
+      if(seen.has(c)) continue; seen.add(c);
+      out.push({ certNo:c, cells:[], detail: cfg.rraDetail.replace("{certNo}", encodeURIComponent(c)) });
+    }
+  }
   if(model){ const q=model.toUpperCase(); out.sort((a,b)=> (b.cells.join(" ").toUpperCase().includes(q)?1:0)-(a.cells.join(" ").toUpperCase().includes(q)?1:0)); }
   return out;
 }
