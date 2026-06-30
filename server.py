@@ -16,6 +16,7 @@
 """
 import sys
 import os
+import re
 import ssl
 import http.cookiejar
 import urllib.request
@@ -59,6 +60,33 @@ def _open(req, timeout=30):
             sys.stderr.write("[proxy] SSL 검증 실패 → 비검증으로 재시도\n")
             return _OPENER_N.open(req, timeout=timeout)
         raise
+
+
+def _to_utf8(body: bytes, ctype: str):
+    """euc-kr/cp949 응답을 UTF-8 로 변환해 브라우저 한글 깨짐을 막는다.
+    (RRA 결과 페이지가 euc-kr 이라 fetch().text() 가 깨지는 문제 대응)
+    텍스트/HTML 류에만 적용하고, 변환 실패 시 원본을 그대로 둔다."""
+    low = ctype.lower()
+    if not any(t in low for t in ("text", "html", "xml", "json")):
+        return body, ctype
+    enc = None
+    m = re.search(r"charset=([\w\-]+)", low)
+    if m:
+        enc = m.group(1).lower()
+    if enc is None:
+        # 헤더에 charset 없으면 문서 앞부분의 meta charset 확인
+        head = body[:2048].decode("ascii", "ignore").lower()
+        mm = re.search(r'charset=["\']?([\w\-]+)', head)
+        if mm:
+            enc = mm.group(1).lower()
+    if enc in ("euc-kr", "euckr", "ks_c_5601-1987", "ksc5601", "cp949", "ms949"):
+        try:
+            body = body.decode("cp949").encode("utf-8")  # cp949 ⊃ euc-kr
+            ctype = re.sub(r"charset=[\w\-]+", "charset=utf-8", low) \
+                if "charset=" in low else (ctype + "; charset=utf-8")
+        except Exception:  # noqa
+            pass
+    return body, ctype
 
 
 def host_allowed(netloc: str) -> bool:
@@ -147,6 +175,7 @@ class Handler(BaseHTTPRequestHandler):
             with _open(req, timeout=30) as resp:
                 body = resp.read()
                 ctype = resp.headers.get("Content-Type", "text/html; charset=utf-8")
+                body, ctype = _to_utf8(body, ctype)
                 self.send_response(200)
                 self.send_header("Content-Type", ctype)
                 self._cors()
